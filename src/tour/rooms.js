@@ -3,7 +3,7 @@
 // room gets its lighting, its people made of light, me (the orange one), and a live canvas over its screen.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { makeCrowd, makeAvatar } from './people.js';
+import { makeCrowd, makeAvatar, makePerson } from './people.js';
 import ATRIUM_SEATS from './atrium-seats.json';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -16,11 +16,13 @@ export const ROOMS = {
     via: (S) => [V(-0.3, 1.6, 0.6), V(-0.9, 1.5, -1.6)],
     // stepped back: the computer, and me beside it
     final: { at: (S) => ({ pos: S.clone().add(V(4.3, 0.85, 0.75)), look: S.clone().add(V(0.6, 0.2, -0.3)) }), dist: 1.42, up: 0.24, shift: 0.42 },
-    people: () => [
-      { pos: V(2.12, 0, -3.0), yaw: Math.PI / 2, kind: 'type' },
-      { pos: V(2.12, 0, -0.25), yaw: Math.PI / 2, kind: 'type' },
-      { pos: V(-2.12, 0, -0.25), yaw: -Math.PI / 2, kind: 'type' },
-      { pos: V(0.95, 0, 1.0), yaw: -2.4, kind: 'stand' },
+    people: () => [],
+    board: { w: 2.0, h: 1.1, facing: V(-1, 0, 0) },       // the whiteboard on the right wall (board_target in the GLB)
+    // the two who were in when the photo the room is modelled on was taken, modelled after it: one writing code
+    // at the desk under the posters, one working something out on the whiteboard
+    figures: [
+      { file: 'rooms/labmates.glb', prefix: 'p1_', pos: V(1.5, 0, -3.3), yaw: Math.PI, kind: 'type', seed: 0.3 },
+      { file: 'rooms/labmates.glb', prefix: 'p2_', pos: V(2.52, 0, -1.45), yaw: Math.PI / 2, kind: 'write', seed: 0.7 },
     ],
     me: { pos: V(-2.15, 0, -3.72), yaw: 0.75, turn: -1, kind: 'present' },        // up from his chair, showing you his screen
     light(scene) {
@@ -69,6 +71,30 @@ export const ROOMS = {
   },
 };
 
+// What's on the lab's whiteboard: why greedy selection gets within (1 - 1/e) of the best subset, in marker.
+// Each line is runs of [text, level] (-1 a subscript, 1 a superscript); the last one stops where his hand is.
+const BOARD_LINES = [
+  { runs: [['f(S*) ≤ f(S', 0], ['i', -1], [') + k·( f(S', 0], ['i+1', -1], [') − f(S', 0], ['i', -1], [') )', 0]] },
+  { runs: [['δ', 0], ['i+1', -1], [' ≤ (1 − 1/k)·δ', 0], ['i', -1]] },
+  { runs: [['f(S*) − f(S', 0], ['k', -1], [') ≤ (1 − 1/k)', 0], ['k', 1], ['·f(S*)', 0]] },
+  { runs: [['⇒  f(S', 0], ['k', -1], [') ≥ (1 − 1/e)·f(S*)', 0]], end: 0.82 },
+];
+function boardTexture(w, h) {
+  const cv = document.createElement('canvas'); cv.width = 1024; cv.height = Math.round(1024 * h / w);
+  const ctx = cv.getContext('2d'), size = 42, font = (lvl) => `${lvl ? size * 0.6 : size}px "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive`;
+  const width = (runs) => runs.reduce((a, [s, lvl]) => { ctx.font = font(lvl); return a + ctx.measureText(s).width; }, 0);
+  ctx.fillStyle = '#16255e'; ctx.textBaseline = 'alphabetic';
+  BOARD_LINES.forEach(({ runs, end }, i) => {
+    const x0 = 0.05 * cv.width, wd = width(runs), k = Math.min(1, ((end || 0.95) * cv.width - x0) / wd);
+    ctx.save(); ctx.translate(end ? end * cv.width - wd * k : x0, (0.17 + i * 0.14) * cv.height); ctx.rotate((i % 2 ? 1 : -1) * 0.008); ctx.scale(k, k);
+    let x = 0;
+    for (const [s, lvl] of runs) { ctx.font = font(lvl); ctx.fillText(s, x, -lvl * size * (lvl > 0 ? 0.45 : 0.22)); x += ctx.measureText(s).width; }
+    ctx.restore();
+  });
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  return tex;
+}
+
 const cache = new Map();
 export function loadRoom(id) {
   if (!cache.has(id)) {
@@ -87,9 +113,17 @@ export function loadRoom(id) {
       plane.position.copy(S).addScaledVector(R.screen.facing, R.screen.w * 0.004 + 0.004);
       plane.lookAt(plane.position.clone().add(R.screen.facing));
       scene.add(plane);
+      const B = R.board && find('board_target');
+      if (B) {                                             // the writing, over the board's own white
+        const bp = new THREE.Mesh(new THREE.PlaneGeometry(R.board.w, R.board.h), new THREE.MeshBasicMaterial({ map: boardTexture(R.board.w, R.board.h), transparent: true, depthWrite: false, toneMapped: false }));
+        bp.position.copy(B.getWorldPosition(new THREE.Vector3())).addScaledVector(R.board.facing, 0.004);
+        bp.lookAt(bp.position.clone().add(R.board.facing));
+        scene.add(bp);
+      }
       const crowd = makeCrowd(R.people()); scene.add(crowd.group);
       const me = await makeAvatar(R.me.pos, R.me.yaw, R.me.turn, R.me.kind); scene.add(me.group);
-      return { scene, start, S, plane, canvas: cv, tex, room: R, update: (t) => { crowd.update(t); me.update(t); } };
+      const figures = await Promise.all((R.figures || []).map(makePerson)); for (const f of figures) scene.add(f.group);
+      return { scene, start, S, plane, canvas: cv, tex, room: R, update: (t) => { crowd.update(t); me.update(t); for (const f of figures) f.update(t); } };
     }));
   }
   return cache.get(id);

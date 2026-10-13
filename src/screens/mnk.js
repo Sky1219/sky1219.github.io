@@ -42,31 +42,38 @@ function symmetries(n) {
   return out;
 }
 // MENACE keeps one box per position up to symmetry, as the original matchbox machine did
-class Menace {
+export class Menace {
   constructor(m, n, k) { this.m = m; this.n = n; this.k = k; this.lines = linesFor(m, n, k); this.sym = symmetries(n); this.boxes = new Map(); this.history = []; this.reset(); }
   canon(b) { let best = null, bt = null; for (const T of this.sym) { const key = T.map((i) => b[i]).join(''); if (best === null || key < best) { best = key; bt = T; } } return [best, bt]; }
   reset() { this.board = Array(this.m * this.n).fill(0); this.turn = 1; this.moves = []; this.result = null; this.last = null; }
   winner(b) { for (const l of this.lines) { const v = b[l[0]]; if (v && l.every((c) => b[c] === v)) return v; } return b.every((x) => x) ? 3 : 0; }
   beads(key) { if (!this.boxes.has(key)) this.boxes.set(key, Array.from(key, (x) => (x !== '0' ? 0 : this.m === 3 ? 4 : 3))); return this.boxes.get(key); }
-  step() {
-    const b = this.board;
-    if (this.turn === 1) {
-      const [key, T] = this.canon(b), beads = this.beads(key);
-      let total = beads.reduce((x, y) => x + y, 0);
-      if (!total) { Array.from(key).forEach((x, i) => { if (x === '0') beads[i] = 1; }); total = beads.reduce((x, y) => x + y, 0); }
-      let r = Math.random() * total, j = 0;
-      for (let i = 0; i < beads.length; i++) { r -= beads[i]; if (r <= 0 && beads[i] > 0) { j = i; break; } }
-      const pick = T[j], shown = Array(beads.length).fill(0); T.forEach((cell, i) => { shown[cell] = beads[i]; });
-      this.last = { key, pick, beads: shown, total }; this.moves.push([key, j]); b[pick] = 1;
-    } else { const free = b.map((x, i) => (x ? -1 : i)).filter((i) => i >= 0); b[free[(Math.random() * free.length) | 0]] = 2; }
-    this.turn = 3 - this.turn;
-    const w = this.winner(b);
+  // X's move: draw a bead from this position's box
+  draw() {
+    const b = this.board, [key, T] = this.canon(b), beads = this.beads(key);
+    let total = beads.reduce((x, y) => x + y, 0);
+    if (!total) { Array.from(key).forEach((x, i) => { if (x === '0') beads[i] = 1; }); total = beads.reduce((x, y) => x + y, 0); }
+    let r = Math.random() * total, j = 0;
+    for (let i = 0; i < beads.length; i++) { r -= beads[i]; if (r <= 0 && beads[i] > 0) { j = i; break; } }
+    const pick = T[j], shown = Array(beads.length).fill(0); T.forEach((cell, i) => { shown[cell] = beads[i]; });
+    this.last = { key, pick, beads: shown, total }; this.moves.push([key, j]); this.place(pick, 1);
+    return pick;
+  }
+  // put a mark down; when that ends the game, reinforce every move X made
+  place(cell, who) {
+    this.board[cell] = who; this.turn = 3 - who;
+    const w = this.winner(this.board);
     if (w) {
       this.result = w === 1 ? 'win' : w === 2 ? 'loss' : 'draw';
       const d = { win: 3, draw: 1, loss: -1 }[this.result];
       for (const [key, i] of this.moves) { const bs = this.boxes.get(key); bs[i] = Math.max(0, bs[i] + d); }
       this.history.push(this.result);
     }
+  }
+  // one move of a game against a random opponent
+  step() {
+    if (this.turn === 1) this.draw();
+    else { const free = this.board.map((x, i) => (x ? -1 : i)).filter((i) => i >= 0); this.place(free[(Math.random() * free.length) | 0], 2); }
   }
   game() { this.reset(); while (!this.result) this.step(); }
   curve(N = 150) { const H = this.history, out = []; for (let e = N; e <= H.length; e += 20) { const win = H.slice(e - N, e); out.push([e, win.filter((x) => x !== 'loss').length / N]); } return out; }

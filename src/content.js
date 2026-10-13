@@ -1,6 +1,7 @@
 // Everything the tours explain. Each tour names its room (see tour/rooms.js) and what plays on that room's
 // screen (src/screens/). The steps are in the order the screen shows them: as it moves on, the overlay
-// highlights the step it's on, and clicking a step jumps the screen there.
+// highlights the step it's on, and clicking a step jumps the screen there. A tour's `play` is the game its panel
+// offers (src/play/), which runs on the in-browser model and takes over the screen while it's played.
 export const PLACES = {
   lab: { building: 'ECSS', name: 'CARAML Research Lab', sub: 'Data-efficient machine learning' },
   hall: { building: 'ECSS', name: 'Lecture Hall', sub: 'HackUTD AI workshops' },
@@ -10,6 +11,10 @@ export const PLACES = {
 export const TOURS = {
   subset: {
     place: 'lab', visual: 'subset', kicker: 'Research, CARAML Lab',
+    play: {
+      id: 'subset', title: 'Teach it with 4 sentences',
+      pitch: 'Twenty-four sentences about one small town. Pick the 4 that go in the prompt; the score is the perplexity of DistilGPT-2, running in your browser, on a short passage about the town that it has not seen. Facility location and a random draw each pick their own 4, and the screen shows who covered the passage best.',
+    },
     title: 'Learning from less data',
     lede: 'A well-chosen slice of a dataset can train a model nearly as well as all of it. Submodular functions make "well-chosen" precise.',
     steps: [
@@ -24,6 +29,10 @@ export const TOURS = {
   },
   memory: {
     place: 'lab', visual: 'memory', kicker: 'Research, CARAML Lab',
+    play: {
+      id: 'memory', title: 'Pack the context',
+      pitch: 'A twelve-turn conversation ends with a question whose answer is back in the first turn. Fit turns into a 48-token budget; the score is the probability DistilGPT-2, running in your browser, gives the right answer, next to a recency-only pick and a set-cover pick.',
+    },
     title: 'Choosing what an agent remembers',
     lede: 'Long conversations with an AI agent outgrow its context window. Something has to decide which earlier turns get sent back to the model.',
     steps: [
@@ -50,6 +59,10 @@ export const TOURS = {
   },
   mnk: {
     place: 'lab', visual: 'mnk', kicker: 'Project, mnk-bench',
+    play: {
+      id: 'mnk', title: 'Matchboxes vs. the language model',
+      pitch: 'DistilGPT-2, running in your browser, plays tic-tac-toe with no game knowledge: the game is written out as text and it takes the legal square it finds likeliest next. A fresh MENACE has no edge over it; a couple of hundred games later MENACE wins most of them. You can play either one.',
+    },
     title: 'Teaching matchboxes to play',
     lede: 'MENACE is a 1960s learning machine made of matchboxes and beads. mnk-bench extends it from tic-tac-toe to general (m, n, k) games like Gomoku and benchmarks agents across them.',
     steps: [
@@ -63,6 +76,10 @@ export const TOURS = {
   },
   hackutd: {
     place: 'ecsw', visual: 'stage', kicker: 'Leadership, HackUTD',
+    play: {
+      id: 'ctf', title: 'Prompt-injection CTF',
+      pitch: 'A flag sits in a hidden instruction that tells DistilGPT-2, running in your browser, to keep it secret. You get 20 tokens to make the model say it anyway, somewhere in its next 12. A bar shows the flag’s probability as you type, and the stage ranks the shortest prompts that worked.',
+    },
     title: 'Running HackUTD',
     lede: 'HackUTD is a 1,300-participant collegiate hackathon that takes over ECSW for a weekend. I\'m on the leadership team that organizes it.',
     steps: [
@@ -75,6 +92,10 @@ export const TOURS = {
   },
   teaching: {
     place: 'hall', visual: 'board', kicker: 'Leadership, HackUTD workshops',
+    play: {
+      id: 'rag', title: 'Build the RAG pipeline',
+      pitch: 'Asked which city HackUTD is held in, DistilGPT-2, running in your browser, gets it wrong on its own. You are the retriever: choose which of five documents goes into the prompt, then watch the next-token probabilities and the answer it gives. The right one flips it.',
+    },
     title: 'Teaching AI to a full room',
     lede: 'My workshops teach hundreds of HackUTD participants how modern AI systems are put together, and then they build one.',
     steps: [

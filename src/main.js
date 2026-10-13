@@ -46,12 +46,20 @@ function showBrief(tour, screen) {
         <button type="button" class="b-run">Run again</button>
       </div>
       <p class="b-status" aria-live="polite"></p>
+    </section>` : ''}
+    ${tour.play ? `<section class="b-play" aria-label="${esc(tour.play.title)}">
+      <h3>${esc(tour.play.title)}</h3>
+      <p>${esc(tour.play.pitch)}</p>
+      <button type="button" class="b-go">Download the model (85 MB) and play</button>
+      <p class="b-status" aria-live="polite"></p>
+      <div class="b-game" hidden></div>
     </section>` : ''}`;
   brief.hidden = false;
   overlay.classList.add('reading');
   $('#b-title').focus({ preventScroll: true });
   brief.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => screen.goto(+b.dataset.step)));
   const unLive = tour.live ? wireLive(screen) : () => {};
+  const unPlay = tour.play ? wirePlay(tour.play.id, screen) : () => {};
   const items = [...brief.querySelectorAll('.b-steps li')];
   let raf = 0, lastStep = -1;
   const sync = () => {
@@ -59,7 +67,14 @@ function showBrief(tour, screen) {
     if (screen.step !== lastStep) { lastStep = screen.step; items.forEach((li, i) => li.classList.toggle('now', i === screen.step)); }
   };
   sync();
-  return () => { cancelAnimationFrame(raf); unLive(); };
+  return () => { cancelAnimationFrame(raf); unLive(); unPlay(); };
+}
+
+// the tour's game (src/play/): played in the panel, on the same in-browser model, with the result on the screen
+function wirePlay(id, screen) {
+  let alive = true, unmount = () => {};
+  import('./play/index.js').then((m) => { if (alive) unmount = m.mountPlay(id, brief.querySelector('.b-play'), screen); });
+  return () => { alive = false; unmount(); };
 }
 
 // the "run it on a real model" panel: loads DistilGPT-2 once (src/llm/), then the screen shows the live run

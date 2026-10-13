@@ -59,8 +59,9 @@ export class Session {
     this.x = F(D); this.h = F(D); this.qkv = F(3 * D); this.a = F(D); this.o = F(D); this.f = F(4 * D); this.g = F(D);
     this.logits = F(model.wte.out); this.scores = F(cap);
   }
-  // feed one token; returns the logits for the next one, plus what the chosen layer attended to and evicted
-  step(token, watch = 3) {
+  // feed one token; returns the logits for the next one, plus what the chosen layer attended to and evicted.
+  // head = false skips the logits (half the work) for tokens whose prediction nobody will read.
+  step(token, watch = 3, head = true) {
     const m = this.m, { D, H } = m, hd = D / H, x = this.x, t = this.t++;
     for (let i = 0; i < D; i++) x[i] = m.wte.q[token * D + i] * m.wte.s[token] + m.wpe[t * D + i];
     let seen = null; const evicted = [];
@@ -101,9 +102,11 @@ export class Session {
       }
     }
     layerNorm(x, m.lnfg, m.lnfb, this.g);
-    matvec(m.wte, this.g, null, this.logits);
+    if (head) matvec(m.wte, this.g, null, this.logits);
     return { logits: this.logits, seen, evicted, kept: this.layers[watch].pos.slice() };
   }
+  // back to the first n tokens (full cache only), so a prompt that shares a prefix with the last one reuses it
+  rewind(n) { for (const C of this.layers) { C.pos.length = n; C.acc.length = n; C.obs.length = n; } this.t = n; }
   // bytes held by the cache right now: keys and values, fp32, every layer
   get cacheBytes() { return this.layers.reduce((a, C) => a + C.pos.length * this.m.D * 2 * 4, 0); }
 }
