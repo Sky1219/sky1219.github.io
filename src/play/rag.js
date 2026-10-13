@@ -48,8 +48,8 @@ export function mount(root, screen) {
     S.res[i] = r;
     result.textContent = `With ${DOCS[i][0]} in the prompt, the model answers “${r.says}”. `
       + (r.right ? `That document has the answer, and the model reads it off (“${ANSWER.trim()}” went from ${pct(base.p)} to ${pct(r.p)} as the next token).`
-        : r.says !== base.says ? 'The answer moved, to the wrong city: the model repeats whatever place the document mentions.'
-          : 'The answer hasn’t moved. Nothing in that document says where.');
+        : r.says !== base.says ? 'The answer changed to a different wrong city, because the model repeats whatever place the document mentions.'
+          : 'The answer hasn’t changed, because that document doesn’t say where HackUTD is held.');
   }; });
   return () => { alive = false; };
 }
@@ -97,6 +97,6 @@ function draw(sc, ctx) {
   bars(ctx, S, 1, d >= 0 ? R : null, 548, 358, 436);
   if (d < 0) text(ctx, 'pick a document to retrieve', 548 + 218, 408, { size: 14, font: SANS, color: C.dim, align: 'center' });
   else if (!R) text(ctx, 'asking the model…', 548 + 218, 408, { size: 14, font: SANS, color: C.dim, align: 'center' });
-  text(ctx, R && d >= 0 ? (R.right ? 'The right document flips the answer.' : 'Wrong document: the answer is still wrong.') : '', 40, h - 44, { size: 18, font: SANS, weight: '700', color: R && R.right ? C.green : C.red });
+  text(ctx, R && d >= 0 ? (R.right ? 'With the right document, the answer is correct.' : 'That is the wrong document, so the answer is still wrong.') : '', 40, h - 44, { size: 18, font: SANS, weight: '700', color: R && R.right ? C.green : C.red });
   text(ctx, 'HackUTD workshop  ·  live', w - 30, h - 22, { size: 12, color: C.faint, align: 'right' });
 }

@@ -45,9 +45,9 @@ export class BoardScreen extends Screen {
       rect(ctx, 600, 410, 380, 92, { fill: '#121923', stroke: C.green, lw: 2, r: 8 });
       text(ctx, 'Judging starts Sunday at 11:00 in the', 616, 436, { size: 14 });
       text(ctx, 'ECSW atrium.  [schedule.md #4]', 616, 458, { size: 14 });
-      text(ctx, 'grounded: every claim points at a chunk', 616, 484, { size: 12, color: C.green });
+      text(ctx, 'every claim points at a chunk', 616, 484, { size: 12, color: C.green });
     }
-    text(ctx, 'Same model, no retraining: the knowledge lives in the store and can be updated any time.', 40, 530, { size: 14, color: C.dim, font: SANS, alpha: clamp(t - 9.5) });
+    text(ctx, 'The model is not retrained. The knowledge lives in the store and can be updated at any time.', 40, 530, { size: 14, color: C.dim, font: SANS, alpha: clamp(t - 9.5) });
   }
   // MCP: one protocol between the app and any number of tool servers
   s1(ctx, t) {
@@ -67,7 +67,7 @@ export class BoardScreen extends Screen {
       : ['{ "method": "tools/call",', '  "params": {', '    "name": "query",', '    "arguments": {', '      "sql": "SELECT room FROM', '        events WHERE …" } } }', '', '← { "content": [ … ] }'];
     rect(ctx, 720, 140, 270, 250, { fill: '#0d131b', stroke: C.line, r: 8 });
     J.forEach((l, i) => text(ctx, l, 734, 164 + i * 24, { size: 13, color: l.startsWith('←') ? C.green : C.ink }));
-    text(ctx, 'Write a server once and it works in every MCP app; the model sees its tools and decides when to call them.', 40, 430, { size: 14, font: SANS, color: C.dim, alpha: clamp(t - 9) });
+    text(ctx, 'Write a server once and it works in every MCP app. The model sees its tools and decides when to call them.', 40, 430, { size: 14, font: SANS, color: C.dim, alpha: clamp(t - 9) });
   }
   // agents: the model calls tools in a loop until it can answer
   s2(ctx, t) {
@@ -94,7 +94,7 @@ export class BoardScreen extends Screen {
     rect(ctx, 420, 140, 570, 330, { fill: '#0d131b', stroke: C.line, r: 8 });
     text(ctx, 'trace', 436, 160, { size: 12, color: C.dim });
     T.forEach(([k, v, col], i) => { if (t < i * 1.5) return; const y = 196 + i * 38; text(ctx, k, 436, y, { size: 12, color: C.dim }); text(ctx, v, 506, y, { size: 14, color: col }); });
-    text(ctx, 'The model never runs code itself: it asks, your code runs the tool, and the result goes back in.', 40, 520, { size: 14, font: SANS, color: C.dim, alpha: clamp(t - 10) });
+    text(ctx, 'The model never runs code itself. It asks, your code runs the tool, and the result goes back in.', 40, 520, { size: 14, font: SANS, color: C.dim, alpha: clamp(t - 10) });
   }
   // the hands-on part: build one
   s3(ctx, t) {
@@ -118,7 +118,7 @@ export class BoardScreen extends Screen {
     const n = Math.floor(t * 2.2);
     SRC.forEach((l, i) => { if (i > n) return; text(ctx, l, 60, 160 + i * 26, { size: 15, color: C.ink }); });
     if (n < SRC.length) rect(ctx, 60 + ctx.measureText(SRC[Math.min(n, SRC.length - 1)]).width + 4, 152 + Math.min(n, SRC.length - 1) * 26, 9, 16, { fill: C.orange });
-    const tips = ['Tools are just functions with a schema', 'The loop is the agent', 'RAG is one tool among many', 'Expose them over MCP to reuse anywhere'];
+    const tips = ['A tool is a function with a schema', 'The agent is the model in a loop', 'RAG is one tool among many', 'Expose them over MCP to reuse anywhere'];
     tips.forEach((s, i) => { if (t < 2 + i * 1.6) return; rect(ctx, 670, 150 + i * 70, 320, 52, { fill: '#121923', stroke: C.orange, r: 8 }); text(ctx, s, 686, 176 + i * 70, { size: 14, font: SANS, color: C.ink }); });
   }
 }

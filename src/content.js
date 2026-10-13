@@ -5,7 +5,7 @@
 export const PLACES = {
   lab: { building: 'ECSS', name: 'CARAML Research Lab', sub: 'Data-efficient machine learning' },
   hall: { building: 'ECSS', name: 'Lecture Hall', sub: 'HackUTD AI workshops' },
-  ecsw: { building: 'ECSW', name: 'HackUTD', sub: '1,300 hackers, one weekend' },
+  ecsw: { building: 'ECSW', name: 'HackUTD', sub: 'Student hackathon, 1,300 participants' },
 };
 
 export const TOURS = {
@@ -13,16 +13,16 @@ export const TOURS = {
     place: 'lab', visual: 'subset', kicker: 'Research, CARAML Lab',
     play: {
       id: 'subset', title: 'Teach it with 4 sentences',
-      pitch: 'Twenty-four sentences about one small town. Pick the 4 that go in the prompt; the score is the perplexity of DistilGPT-2, running in your browser, on a short passage about the town that it has not seen. Facility location and a random draw each pick their own 4, and the screen shows who covered the passage best.',
+      pitch: 'Pick 4 of 24 sentences about a small town to put in the prompt. DistilGPT-2 is then scored on a passage about the town that it has not seen, next to facility location\'s 4 and a random 4.',
     },
-    title: 'Learning from less data',
-    lede: 'A well-chosen slice of a dataset can train a model nearly as well as all of it. Submodular functions make "well-chosen" precise.',
+    title: 'Submodular subset selection',
+    lede: 'A model trained on a carefully chosen part of a dataset can do nearly as well as one trained on all of it. Submodular functions give a way to score which part to choose.',
     steps: [
       'Every example becomes a point, placed by its embedding.',
       'Facility location scores a subset by how well each example is covered by its most similar pick.',
-      'Diminishing returns: a second pick near one you already have adds little. That is what makes it submodular.',
+      'A second pick near one you already have adds little. This diminishing-returns property is what makes the function submodular.',
       'Greedy takes the biggest gain each time, and is guaranteed at least 63% (1 − 1/e) of the best possible score. Lazy greedy skips most of the work by reusing stale gains as upper bounds.',
-      'Other submodular functions pick differently: graph cut favors central, representative examples; log-determinant favors diverse ones.',
+      'Other submodular functions pick differently. Graph cut favors central, representative examples, and log-determinant favors diverse ones.',
       'Train on the subset and compare it with a random one of the same size.',
     ],
     role: 'In Prof. Rishabh Iyer\'s CARAML Lab I research these methods for data-efficient training, with applications to computer vision and multimodal models.',
@@ -31,14 +31,14 @@ export const TOURS = {
     place: 'lab', visual: 'memory', kicker: 'Research, CARAML Lab',
     play: {
       id: 'memory', title: 'Pack the context',
-      pitch: 'A twelve-turn conversation ends with a question whose answer is back in the first turn. Fit turns into a 48-token budget; the score is the probability DistilGPT-2, running in your browser, gives the right answer, next to a recency-only pick and a set-cover pick.',
+      pitch: 'The last question in a twelve-turn conversation is answered in the first turn. Fit turns into 48 tokens so that DistilGPT-2 can still answer it, then compare with a recency-only pick and a set-cover pick.',
     },
-    title: 'Choosing what an agent remembers',
-    lede: 'Long conversations with an AI agent outgrow its context window. Something has to decide which earlier turns get sent back to the model.',
+    title: 'Context selection for agent memory',
+    lede: 'A long conversation with an AI agent eventually stops fitting in its context window, so only some of the earlier turns can be sent back to the model.',
     steps: [
       'Split the history into turns, each with a token cost, and set a memory budget.',
       'Weight what each turn says by how much the new request needs it, and score a set of turns with probabilistic set cover.',
-      'Turns that repeat something already covered add almost nothing: the objective is submodular.',
+      'A turn that repeats something already covered adds almost nothing, because the objective is submodular.',
       'Pack with cost-sensitive greedy, by gain per token, until the budget is spent.',
       'Send the chosen turns with the new request, and check the answer has what it needs.',
     ],
@@ -47,23 +47,23 @@ export const TOURS = {
   kv: {
     place: 'lab', visual: 'kv', live: true, kicker: 'Research and the sub-cache project',
     title: 'Evicting from the KV cache',
-    lede: 'While an LLM generates text it keeps a key and a value for every earlier token. At long contexts that cache, not the model weights, fills GPU memory, so some entries have to go.',
+    lede: 'While an LLM generates text it keeps a key and a value for every earlier token. At long contexts this cache is what fills GPU memory, so some entries have to be evicted.',
     steps: [
       'Each new token adds a key and value entry to the cache.',
       'With a fixed budget, every new entry means evicting an old one.',
-      'The baselines: StreamingLLM keeps a sink token and a recent window, H2O keeps heavy hitters, SnapKV keeps what recent queries attend to.',
-      'A submodular policy, facility location over the keys weighted by the attention each has received, keeps the set that best covers what is attended, so near-duplicates don\'t crowd out the rest.',
+      'There are three baselines. StreamingLLM keeps a sink token and a recent window, H2O keeps heavy hitters, and SnapKV keeps what recent queries attend to.',
+      'The submodular policy is facility location over the keys, weighted by the attention each key has received. It keeps the set that best covers what is attended to, so near-duplicate keys don\'t crowd out the rest.',
       'Compare at the same budget. In sub-cache I measure output quality, memory and latency during decoding.',
     ],
-    role: 'I\'m investigating submodular KV-cache eviction in the CARAML Lab, advised by a PhD student, and building it as sub-cache (Python, PyTorch) with H2O, StreamingLLM and SnapKV as baselines. The screen starts on simulated attention; run it on the real model below to measure the policies on your own text.',
+    role: 'I\'m investigating submodular KV-cache eviction in the CARAML Lab, advised by a PhD student, and building it as sub-cache (Python, PyTorch) with H2O, StreamingLLM and SnapKV as baselines. The screen starts with simulated attention. You can run it on the real model below to measure the policies on your own text.',
   },
   mnk: {
     place: 'lab', visual: 'mnk', kicker: 'Project, mnk-bench',
     play: {
       id: 'mnk', title: 'Matchboxes vs. the language model',
-      pitch: 'DistilGPT-2, running in your browser, plays tic-tac-toe with no game knowledge: the game is written out as text and it takes the legal square it finds likeliest next. A fresh MENACE has no edge over it; a couple of hundred games later MENACE wins most of them. You can play either one.',
+      pitch: 'DistilGPT-2 plays tic-tac-toe as text, taking the legal square it rates likeliest. MENACE starts out no better, but wins most games after a couple of hundred. You can play against either one.',
     },
-    title: 'Teaching matchboxes to play',
+    title: 'MENACE for (m, n, k) games',
     lede: 'MENACE is a 1960s learning machine made of matchboxes and beads. mnk-bench extends it from tic-tac-toe to general (m, n, k) games like Gomoku and benchmarks agents across them.',
     steps: [
       'Keep one matchbox for every board position, with beads for each legal move.',
@@ -72,21 +72,21 @@ export const TOURS = {
       'Repeat for thousands of games and graph how the win rate climbs.',
       'Change the board size or the number in a row and compare how fast agents learn.',
     ],
-    role: 'I\'m building mnk-bench in Python. It extends MENACE to (m, n, k) games and generates the learning-curve graphs automatically. The learning curves on the screen are real MENACE runs.',
+    role: 'I\'m building mnk-bench in Python. It extends MENACE to (m, n, k) games and generates the learning-curve graphs automatically. The learning curves on the screen come from actual MENACE runs.',
   },
   hackutd: {
     place: 'ecsw', visual: 'stage', kicker: 'Leadership, HackUTD',
     play: {
       id: 'ctf', title: 'Prompt-injection CTF',
-      pitch: 'A flag sits in a hidden instruction that tells DistilGPT-2, running in your browser, to keep it secret. You get 20 tokens to make the model say it anyway, somewhere in its next 12. A bar shows the flag’s probability as you type, and the stage ranks the shortest prompts that worked.',
+      pitch: 'A hidden instruction gives DistilGPT-2 a flag and tells it to keep the flag secret. You get 20 tokens to make the model say it, and the stage screen ranks the shortest prompts that worked.',
     },
     title: 'Running HackUTD',
     lede: 'HackUTD is a 1,300-participant collegiate hackathon that takes over ECSW for a weekend. I\'m on the leadership team that organizes it.',
     steps: [
-      'Design our CTF competition.',
-      'Handle logistics.',
-      'Organize events.',
-      'Coordinate with industry representatives.',
+      'I design our CTF competition.',
+      'I handle logistics for the weekend.',
+      'I organize events.',
+      'I coordinate with industry representatives.',
     ],
     role: 'Organizer on the HackUTD leadership team since January 2026.',
   },
@@ -94,16 +94,16 @@ export const TOURS = {
     place: 'hall', visual: 'board', kicker: 'Leadership, HackUTD workshops',
     play: {
       id: 'rag', title: 'Build the RAG pipeline',
-      pitch: 'Asked which city HackUTD is held in, DistilGPT-2, running in your browser, gets it wrong on its own. You are the retriever: choose which of five documents goes into the prompt, then watch the next-token probabilities and the answer it gives. The right one flips it.',
+      pitch: 'On its own, DistilGPT-2 names the wrong city for HackUTD. Choose which of five documents goes into the prompt and see whether the answer changes.',
     },
-    title: 'Teaching AI to a full room',
-    lede: 'My workshops teach hundreds of HackUTD participants how modern AI systems are put together, and then they build one.',
+    title: 'Teaching AI workshops',
+    lede: 'In my workshops, hundreds of HackUTD participants learn how current AI systems are put together and then build one themselves.',
     steps: [
       'Retrieval-augmented generation: look up the relevant documents, then answer from them.',
       'Model Context Protocol: one standard way to connect tools and data to any AI app.',
       'Agents and tools: the model calls tools in a loop until it can answer.',
       'Hands-on: everyone builds a small agent with a RAG tool.',
     ],
-    role: 'I teach AI skills and usage in workshops for hundreds of HackUTD participants.',
+    role: 'I teach workshops on building with AI for hundreds of HackUTD participants.',
   },
 };

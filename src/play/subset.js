@@ -90,7 +90,7 @@ export function mount(root, screen) {
   let alive = true, busy = false;
   const log = (s, c = C.ink) => S.logs.push([s, c]);
   root.innerHTML = `
-    <p class="g-note">Pick the ${K} sentences that will best prepare the model for a passage about this town. It mentions everything the town is known for, and you don't get to read it first.</p>
+    <p class="g-note">Pick the ${K} sentences that best prepare the model for a passage about this town. You don't get to read the passage first. The model predicts the passage better after reading related sentences. The score is perplexity, which measures how surprised the model is by the passage, so lower is better. Your ${K} are compared with ${K} chosen at random and ${K} chosen by facility location, a method that picks sentences covering the whole list.</p>
     <div class="g-list g-pool" role="group" aria-label="Sentences">${POOL.map((p, i) => `<button type="button" class="g-item" aria-pressed="false" data-i="${i}">${esc(p.s)}</button>`).join('')}</div>
     <div class="g-row"><button type="button" class="g-btn g-score" disabled>Score my ${K}</button><button type="button" class="g-ghost g-clear">Clear</button><span class="g-count"></span></div>
     <p class="g-result" aria-live="polite"></p>`;
@@ -118,9 +118,9 @@ export function mount(root, screen) {
     }));
     if (!alive) return;
     const { you, fl: F, rnd, none } = S.runs;
-    result.textContent = `Perplexity on the passage, lower is better: your four ${you.ppl.toFixed(1)}, facility location ${F.ppl.toFixed(1)}, a random four ${rnd.ppl.toFixed(1)}, no prompt ${none.ppl.toFixed(1)}. `
-      + `The passage touches all ${SUBJECT.length} subjects in town; you covered ${subjects(you.pick)}, facility location ${subjects(F.pick)}, the random draw ${subjects(rnd.pick)}. `
-      + (you.ppl < F.ppl ? 'You beat facility location, which never saw the passage.' : 'Facility location wins this one without ever seeing the passage: it only tries to cover the pool.');
+    result.textContent = `Perplexity on the passage (lower is better) was ${you.ppl.toFixed(1)} for your four, ${F.ppl.toFixed(1)} for facility location, ${rnd.ppl.toFixed(1)} for a random four and ${none.ppl.toFixed(1)} with no prompt. `
+      + `The passage touches all ${SUBJECT.length} subjects in town. You covered ${subjects(you.pick)}, facility location ${subjects(F.pick)} and the random draw ${subjects(rnd.pick)}. `
+      + (you.ppl < F.ppl ? 'You beat facility location, which never saw the passage.' : 'Facility location wins this one. It never saw the passage and only tries to cover the pool.');
     busy = false; render();
   };
   log('$ python -m subsel.embed --model distilgpt2 --pool town.txt', C.green);

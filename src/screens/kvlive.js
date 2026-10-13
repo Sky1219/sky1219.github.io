@@ -19,7 +19,7 @@ export function drawLive(sc, ctx, L) {
     text(ctx, L.phase === 'error' ? 'could not load the model' : 'downloading DistilGPT-2 to this device', hb.x + hb.w / 2, hb.y + 110, { size: 17, color: L.phase === 'error' ? C.red : C.ink, align: 'center' });
     rect(ctx, hb.x + 60, hb.y + 140, hb.w - 120, 10, { fill: C.line }); rect(ctx, hb.x + 60, hb.y + 140, (hb.w - 120) * k, 10, { fill: C.orange });
     text(ctx, `${(L.got / 1e6).toFixed(1)} / ${(L.total / 1e6 || 85).toFixed(1)} MB   82M parameters, int8`, hb.x + hb.w / 2, hb.y + 172, { size: 13, color: C.dim, align: 'center' });
-    text(ctx, 'GPT-2 written from scratch in JavaScript: no ML library, no server', hb.x + hb.w / 2, hb.y + 210, { size: 13, color: C.dim, align: 'center' });
+    text(ctx, 'GPT-2 written from scratch in JavaScript, with no ML library and no server', hb.x + hb.w / 2, hb.y + 210, { size: 13, color: C.dim, align: 'center' });
   } else {
     const rows = 22, tNow = Math.max(0, R.t), q0 = Math.max(0, tNow - rows + 1), cw = hb.w / Math.max(N, 1), rh = (hb.h - 40) / rows;
     const evictedSoFar = new Set(R.evicted.filter(([t]) => t <= tNow).map(([, p]) => p));

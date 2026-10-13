@@ -44,7 +44,7 @@ export function mount(root, screen) {
   let alive = true, run = 0;
   const log = (s, c = C.ink) => S.logs.push([s, c]);
   root.innerHTML = `
-    <p class="g-note">The model is X and moves first. MENACE is O.</p>
+    <p class="g-note">The model is X and moves first. MENACE is O. MENACE starts with random moves and adjusts after every game, so it should overtake the model as more games are played. The model never learns.</p>
     <div class="g-row"><button type="button" class="g-btn g-train">Play ${BATCH} games: MENACE vs the model</button></div>
     <div class="g-row"><button type="button" class="g-ghost g-lm">Play the model yourself</button><button type="button" class="g-ghost g-box">Play MENACE yourself</button></div>
     <div class="g-board" role="group" aria-label="Board">${Array.from({ length: 9 }, (_, i) => `<button type="button" data-i="${i}" disabled></button>`).join('')}</div>
