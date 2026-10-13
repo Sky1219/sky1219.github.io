@@ -27,6 +27,26 @@ perplexity, agreement with the full cache and speed. Nothing leaves the visitor'
 It matches PyTorch: on the default passage the last-token logits have cosine similarity 1.0000 with Hugging
 Face's fp32 model, and perplexity is 35.9 against 36.3 (the difference is the int8 weights).
 
+## The games
+
+Every tour except the KV-cache one has a game in its panel, played on that same in-browser DistilGPT-2 (one
+download, shared: `src/llm/engine.js` holds the model in a pool of workers, and the KV-cache experiment and the
+games all send their work through it). The controls are in the panel; the room's screen shows the result, and
+clicking a step hands the screen back to the walkthrough.
+
+| Tour | Game | What is measured |
+|---|---|---|
+| Subset selection | Teach it with 4 sentences | Perplexity on a held-out passage after your 4 of 24 sentences, facility location's 4 and a random 4 |
+| Agentic memory | Pack the context | Probability of the right answer token from the turns you fit in 48 tokens, against recency-only and set cover |
+| mnk-bench | Matchboxes vs. the language model | MENACE (O) against DistilGPT-2 (X), which scores each legal move as the next token of the game written as text |
+| Teaching workshops | Build the RAG pipeline | Next-token probabilities, and the 8-token answer, for a question about HackUTD with each of five documents retrieved |
+| HackUTD | Prompt-injection CTF | Whether a hidden flag turns up in the model's next 12 tokens after your suffix of at most 20; shortest working prompts ranked |
+
+Nothing in them is scripted: the numbers are whatever the model does on the visitor's machine. Facility location
+runs on idf-weighted means of the model's token embeddings and never sees the passage. The CTF leaderboard is
+kept in the visitor's own browser (`localStorage`), since the site has no server; the organizers' entry on it is
+a real prompt, measured like any other.
+
 The weights live in `public/model/` (85 MB in 14 MB chunks, downloaded only when a visitor asks). To rebuild them:
 
 ```sh
@@ -42,9 +62,7 @@ npm run dev      # http://localhost:5173, rebuilds on save
 npm run build    # writes dist/, a static site you can host anywhere
 ```
 
-Live at https://sky1219.github.io. Every push to `main` rebuilds and redeploys it through GitHub Actions
-(`.github/workflows/pages.yml`). It also works on Vercel: framework preset "Other", build command `npm run build`,
-output directory `dist`.
+On Vercel: framework preset "Other", build command `npm run build`, output directory `dist`.
 The page opens a tour directly from its link too, for example `/#kv`.
 
 ## Where things live
@@ -57,6 +75,12 @@ The page opens a tour directly from its link too, for example `/#kv`.
   `hackathon`, `board`). `kit.js` has the shared look: panes, highlighted Python, plots, a terminal. The
   subset picks and MENACE runs are computed for real; the KV-cache attention, the agent session and the
   accuracy curves are simulated or illustrative, and the screens say so.
+- `src/play/`: the games. `index.js` mounts a tour's game in its panel once the model is there; each game file
+  has its content, its logic, its panel controls and its view for the room's screen. `content.js` says which
+  tour gets which (`play`).
+- `src/llm/`: the in-browser model. `gpt2.js` is the model, `worker.js` what a worker can be asked (a KV-cache
+  run, scoring a prompt, an embedding), `engine.js` the shared download and worker pool, `live.js` the KV-cache
+  experiment.
 - `src/tour/`: the 3D. `campus.js` draws campus at night from the HackUTD map's building models and the
   OpenStreetMap footprints, with the scan-in; `rooms.js` loads the rooms and sets their lighting and camera
   paths; `people.js` builds the light people and my avatar; `index.js` runs the flight and the camera.
@@ -64,11 +88,15 @@ The page opens a tour directly from its link too, for example `/#kv`.
 - `public/rooms/*.glb`: the three rooms and the avatar, modelled in Blender. Sources: `assets/rooms.blend`
   (scenes Lab, Hall and Atrium; each room has empties named `cam_start` and `screen_target`) and
   `assets/avatar.blend` (one mesh per body part, named like the rig's parts in `people.js`). Export with
-  File > Export > glTF (.glb), "Active scene" on, into `public/rooms/`.
+  File > Export > glTF (.glb), "Active scene" on, into `public/rooms/`. The lab is generated instead, after a
+  photo of the real room: `blender -b assets/rooms.blend --python tools/build_lab.py` rebuilds the Lab scene and
+  exports it. The two labmates in that photo are modelled the same way as the avatar, by
+  `blender -b --factory-startup --python tools/build_labmates.py` (`public/rooms/labmates.glb`).
 - `public/data/`: campus geometry. `campus3d.*` come from the HackUTD CTF map; `site.json` and
   `src/campus-plan.svg` are made by `python3 tools/prep.py <path to the CTF repo's public/map/data>`.
 
 With no WebGL, or for anyone who prefers reduced motion, a link opens the screen flat on the page with the same
 explanation beside it.
 
-`src/visuals/`, `src/games/` and `src/screen.js`, if present, are from earlier designs and no longer used.
+`src/visuals/`, `src/games/` and `src/screen.js`, if present, are from earlier designs and no longer used (the
+games are in `src/play/`).

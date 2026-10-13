@@ -1,6 +1,7 @@
 // What the room screens share. Each screen is a workstation (or a projector) showing the real work: code, logs,
 // plots and diagrams, drawn on a canvas every frame. A screen walks through its steps on a timeline, says which
-// step it's on (this.step, which the overlay highlights), and can be sent to any step (goto).
+// step it's on (this.step, which the overlay highlights), and can be sent to any step (goto). A game from
+// src/play/ can take the screen over (this.play): while it's on, the game draws; clicking a step hands it back.
 export const C = {
   bg: '#0b0f14', pane: '#11161d', head: '#161c24', line: '#263040', ink: '#d6dee8', dim: '#7d8a9a', faint: '#3a4656',
   orange: '#ff9a3c', blue: '#5aa9ff', cyan: '#4ee6ff', green: '#4fd47a', red: '#ff5f6d', yellow: '#e6c45a', purple: '#b38cff', pink: '#ff7ab6',
@@ -39,6 +40,12 @@ export function arrow(ctx, x0, y0, x1, y1, { color = C.dim, lw = 2, head = 9, al
   const a = Math.atan2(y1 - y0, x1 - x0);
   ctx.globalAlpha = alpha; ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(x1, y1);
   ctx.lineTo(x1 - head * Math.cos(a - 0.45), y1 - head * Math.sin(a - 0.45)); ctx.lineTo(x1 - head * Math.cos(a + 0.45), y1 - head * Math.sin(a + 0.45)); ctx.fill(); ctx.globalAlpha = 1;
+}
+// s, cut short with an ellipsis if it's wider than maxW (in the font already set on ctx)
+export function fit(ctx, s, maxW) {
+  if (ctx.measureText(s).width <= maxW) return s;
+  while (s.length > 1 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1);
+  return s.trimEnd() + '…';
 }
 export function wrap(ctx, s, maxW) {
   const out = []; let cur = '';
@@ -94,7 +101,7 @@ export function axes(ctx, x, y, w, h, { xlim = [0, 1], ylim = [0, 1], xlabel = '
 
 export class Screen {
   constructor(w, h, beats) { this.w = w; this.h = h; this.beats = beats; this.t = 0; this.step = 0; this.st = 0; this.lines = []; this.loop = 0; }
-  goto(i) { this.step = ((i % this.beats.length) + this.beats.length) % this.beats.length; this.st = 0; if (this.step === 0) this.loop++; this.onStep(this.step); }
+  goto(i) { if (this.play) this.play.on = false; this.step = ((i % this.beats.length) + this.beats.length) % this.beats.length; this.st = 0; if (this.step === 0) this.loop++; this.onStep(this.step); }
   onStep() {}
   // the terminal: a scrolling log
   print(s, color = C.ink) { this.lines.push([s, color]); if (this.lines.length > 60) this.lines.shift(); }
@@ -115,11 +122,11 @@ export class Screen {
   }
   frame(ctx, dt) {
     this.t += dt; this.st += dt;
-    if (!this.hold && this.st > this.beats[this.step]) this.goto(this.step + 1);
+    const play = this.play && this.play.on ? this.play : null;
+    if (!play && !this.hold && this.st > this.beats[this.step]) this.goto(this.step + 1);
     ctx.save();
     rect(ctx, 0, 0, this.w, this.h, { fill: C.bg });
-    this.update?.(dt);
-    this.draw(ctx);
+    if (play) play.draw(this, ctx); else { this.update?.(dt); this.draw(ctx); }
     // the glass: faint scanlines and a soft edge
     ctx.fillStyle = 'rgba(0,0,0,0.08)'; for (let y = 0; y < this.h; y += 3) ctx.fillRect(0, y, this.w, 1);
     const g = ctx.createRadialGradient(this.w / 2, this.h / 2, this.h * 0.45, this.w / 2, this.h / 2, this.w * 0.7);
