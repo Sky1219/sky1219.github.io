@@ -79,7 +79,7 @@ export function mount(root, screen) {
   let alive = true, seq = 0, warn = '';
   const log = (s, c = C.ink) => S.logs.push([s, c]);
   root.innerHTML = `
-    <p class="g-note">The conversation ends with <b>“${esc(QUESTION)}”</b> Only ${BUDGET} tokens of it can go back to the model. Drag turns into the context, or click them.</p>
+    <p class="g-note">The conversation ends with <b>“${esc(QUESTION)}”</b> The model can only answer if the turn with the answer is in its context, and only ${BUDGET} tokens fit (a token is roughly a word). Drag or click turns into the context. The score is the probability that the model gives the right answer. It is compared with keeping only the latest turns, and with set cover, which picks the turns most relevant to the question.</p>
     <p class="g-label">Conversation</p>
     <ol class="g-list g-out" aria-label="Conversation"></ol>
     <p class="g-label">Context sent to the model <span class="g-count"></span></p>

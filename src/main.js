@@ -50,6 +50,7 @@ function showBrief(tour, screen) {
     ${tour.play ? `<section class="b-play" aria-label="${esc(tour.play.title)}">
       <h3>${esc(tour.play.title)}</h3>
       <p>${esc(tour.play.pitch)}</p>
+      <p>DistilGPT-2 is a small text model from 2019. It only continues the text it is given and does not follow instructions.</p>
       <button type="button" class="b-go">Download the model (85 MB) and play</button>
       <p class="b-status" aria-live="polite"></p>
       <div class="b-game" hidden></div>
@@ -96,7 +97,7 @@ function wireLive(screen) {
       else if (S.phase === 'running') { const n = Object.values(S.runs).filter((r) => r.done).length; status.textContent = `Running ${S.ids.length} tokens through 5 caches on ${S.backend}: ${n} of 5 done.`; }
       else if (S.phase === 'done') {
         const rank = ['stream', 'h2o', 'snap', 'fl'].map((p) => [p, S.runs[p].ppl]).sort((a, b) => a[1] - b[1]);
-        status.textContent = `At ${S.budget} entries per layer, ${names[rank[0][0]]} kept perplexity closest to the full cache (${rank[0][1].toFixed(1)} vs ${S.runs.full.ppl.toFixed(1)}); ${names[rank[3][0]]} lost the most (${rank[3][1].toFixed(1)}). Click a step to see each policy's attention.`;
+        status.textContent = `At ${S.budget} entries per layer, ${names[rank[0][0]]} kept perplexity closest to the full cache, at ${rank[0][1].toFixed(1)} against ${S.runs.full.ppl.toFixed(1)}. ${names[rank[3][0]]} lost the most, at ${rank[3][1].toFixed(1)}. Click a step to see each policy's attention.`;
       } else if (S.phase === 'error') status.textContent = 'The model could not load here. Try a desktop browser.';
       else status.textContent = '';
     };

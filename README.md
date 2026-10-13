@@ -1,12 +1,10 @@
 # akash-portfolio
 
-A résumé site where the orange links open a tour of UT Dallas. Clicking one breaks the page into a grid from
-the link outward, campus scans itself in around the building, the camera flies to it and stops at the wall,
-and the view breaks into blocks and resolves into the room, with the room's name decoding over it. Inside,
-people made of light are at work, I'm there as a hologram modelled on me, and the camera walks up to the screen
-where the work is running: real code, logs and plots on the lab computer, slides in the lecture hall, the live
-dashboard at HackUTD. The explanation overlays the room; its highlighted step follows the screen, and clicking
-a step jumps the screen there. "Look around" pulls back to see the room.
+A résumé site where the orange links open a 3D tour of UT Dallas. Clicking one flies the camera across campus
+to the building where that work happens and into the room. Each room has a screen showing the work: code,
+logs and plots on the lab computer, slides in the lecture hall, and the live dashboard at HackUTD. An
+explanation overlays the room. Its highlighted step follows the screen, and clicking a step jumps the screen
+there. "Look around" pulls the camera back to show the room, which has other people in it and an avatar of me.
 
 | Link | Room | Screen |
 |---|---|---|
