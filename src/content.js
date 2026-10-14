@@ -88,7 +88,7 @@ export const TOURS = {
       'I organize events.',
       'I coordinate with industry representatives.',
     ],
-    role: 'Organizer on the HackUTD leadership team since January 2026.',
+    role: 'Organizer on the HackUTD leadership team since 2026.',
   },
   teaching: {
     place: 'hall', visual: 'board', kicker: 'Leadership, HackUTD workshops',
