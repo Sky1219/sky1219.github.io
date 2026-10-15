@@ -54,5 +54,9 @@ const fl = {
   },
 };
 
-export const POLICIES = { full: { evict: () => 0 }, stream, h2o, snap, fl };
-export const POLICY_NAMES = { full: 'Full cache', stream: 'StreamingLLM', h2o: 'H2O', snap: 'SnapKV', fl: 'Facility location' };
+// the visitor's policy (the KV game): the start token and the pinned positions never leave; otherwise the oldest
+// entry goes. (The start token is an attention sink: drop it and every later prediction falls apart.)
+const pin = { evict(C, B, D, keep) { for (let j = 1; j < C.pos.length - 1; j++) if (!keep.has(C.pos[j])) return j; return 1; } };
+
+export const POLICIES = { full: { evict: () => 0 }, stream, h2o, snap, fl, pin };
+export const POLICY_NAMES = { full: 'Full cache', stream: 'StreamingLLM', h2o: 'H2O', snap: 'SnapKV', fl: 'Facility location', pin: 'Pinned' };

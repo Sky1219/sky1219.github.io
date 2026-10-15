@@ -12,18 +12,64 @@ const tourMod = () => import('./tour/index.js');
 const screensMod = () => import('./screens/index.js');
 
 const overlay = $('#tour'), canvas = $('#tour-canvas'), warpCv = $('#warp'), brief = $('#brief'), title = $('#room-title');
-const where = $('#tour-where'), status = $('#tour-status'), skipBtn = $('#tour-skip'), flat = $('#flat-game'), viewBtn = $('#tour-view');
-const SCREEN_H = { lab: 606, hall: 576, ecsw: 576 };
+const where = $('#tour-where'), status = $('#tour-status'), skipBtn = $('#tour-skip'), flat = $('#flat-game'), viewBtn = $('#tour-view'), hud = $('#tour-hud');
+const SCREEN_H = { lab: 606, hall: 576, ecsw: 576, home: 606 };
 let current = null;          // { id, run, opener, pushed, stopSync, warp, blocks }
 
+// A room's screen on a canvas outside the tour: the hover peek, the work cards, the flat fallback. The screens lay
+// out at 1024 wide; scale draws them smaller (half size is a quarter of the work per frame). start(still) runs it,
+// or draws one frame when still.
+async function miniScreen(cv, tour, scale = 1) {
+  const { makeScreen } = await screensMod();
+  const W = 1024, H = SCREEN_H[tour.place], screen = makeScreen(tour.visual, W, H), ctx = cv.getContext('2d');
+  let raf = 0, last = 0;
+  const fit = () => { if (cv.width !== W * scale || cv.height !== H * scale) { cv.width = W * scale; cv.height = H * scale; } ctx.setTransform(scale, 0, 0, scale, 0, 0); };
+  const loop = (t) => { raf = requestAnimationFrame(loop); screen.frame(ctx, Math.min(0.1, (t - last) / 1000)); last = t; };
+  return {
+    screen, ctx, fit,
+    start(still = false) { cancelAnimationFrame(raf); fit(); if (still) screen.frame(ctx, 0); else { last = performance.now(); raf = requestAnimationFrame(loop); } },
+    stop() { cancelAnimationFrame(raf); },
+  };
+}
+
+// a look at the room's screen before you go: hovering a link floats a live thumbnail of what's running there.
+// Only where there's a real hover; the page's "hover first" hints show only then too (.can-peek)
+const canPeek = matchMedia('(hover: hover) and (pointer: fine)').matches;
+document.documentElement.classList.toggle('can-peek', canPeek);
+const peek = document.createElement('div'); peek.className = 'peek'; peek.innerHTML = '<canvas></canvas><p></p>'; document.body.append(peek);
+const peekCv = peek.querySelector('canvas'), peekCap = peek.querySelector('p');
+const peekScreens = new Map();                         // one per tour, kept for the next hover
+let peeking = null;
+async function startPeek(a) {
+  const id = a.dataset.tour, tour = TOURS[id], place = PLACES[tour.place]; peeking = id;
+  peekCap.innerHTML = `<b>${esc(place.building)}</b>${esc(place.name)}  ·  ${esc(tour.title)}`;
+  const r = a.getBoundingClientRect(), w = 340, h = 20 + (340 * SCREEN_H[tour.place]) / 1024;
+  const x = Math.min(innerWidth - w - 12, Math.max(12, r.left)), y = r.bottom + h + 10 < innerHeight ? r.bottom + 10 : r.top - h - 10;
+  peek.style.left = `${x}px`; peek.style.top = `${y}px`;
+  if (!peekScreens.has(id)) peekScreens.set(id, miniScreen(peekCv, tour, 0.5));
+  const mini = await peekScreens.get(id);
+  if (peeking !== id) return;
+  mini.start(reduce()); peek.classList.add('on');
+}
+function stopPeek() { if (peeking) peekScreens.get(peeking)?.then((m) => m.stop()); peeking = null; peek.classList.remove('on'); }
+// the link and its building on the map light up together
+const lit = (id, on) => {
+  const building = PLACES[TOURS[id].place].building;
+  for (const el of document.querySelectorAll(`.plan-hot[data-code="${building}"], .pin[data-building="${building}"]`)) el.classList.toggle('lit', on);
+};
 for (const a of document.querySelectorAll('[data-tour]')) {
-  const warm = () => { if (webgl) tourMod().then((m) => m.prefetch(TOURS[a.dataset.tour].place)); };
+  const id = a.dataset.tour;
+  const warm = () => { if (webgl) tourMod().then((m) => m.prefetch(TOURS[id].place)); };
   a.addEventListener('pointerenter', warm, { once: true });
   a.addEventListener('focus', warm, { once: true });
+  let timer = 0;
+  const on = () => { lit(id, true); if (canPeek && !a.matches('.pin, .card')) timer = setTimeout(() => startPeek(a), 260); };
+  const off = () => { lit(id, false); clearTimeout(timer); stopPeek(); };
+  a.addEventListener('pointerenter', on); a.addEventListener('pointerleave', off); a.addEventListener('focus', on); a.addEventListener('blur', off);
   a.addEventListener('click', (e) => {
-    e.preventDefault();
+    e.preventDefault(); off();
     const r = a.getBoundingClientRect();
-    open(a.dataset.tour, a, { x: e.clientX || r.left + r.width / 2, y: e.clientY || r.top + r.height / 2 });
+    open(id, a, { x: e.clientX || r.left + r.width / 2, y: e.clientY || r.top + r.height / 2 });
   });
 }
 
@@ -35,18 +81,6 @@ function showBrief(tour, screen) {
     <p class="b-lede">${esc(tour.lede)}</p>
     <ol class="b-steps">${tour.steps.map((s, i) => `<li><button type="button" data-step="${i}">${esc(s)}</button></li>`).join('')}</ol>
     <p class="b-role"><b>My part.</b> ${esc(tour.role)}</p>
-    ${tour.live ? `<section class="b-live" aria-label="Run it on a real model">
-      <h3>Run it on a real model</h3>
-      <p>DistilGPT-2 (82M parameters) runs right here in your browser, on GPT-2 implemented from scratch in JavaScript for this site. The screen switches to its real attention, and every policy is measured on your text.</p>
-      <button type="button" class="b-go">Download the model (85 MB) and run</button>
-      <div class="b-form" hidden>
-        <label for="b-text">Text</label>
-        <textarea id="b-text" rows="5" spellcheck="false"></textarea>
-        <label class="b-budget">Cache budget <input type="range" min="8" max="64" step="4"> <output></output> entries per layer</label>
-        <button type="button" class="b-run">Run again</button>
-      </div>
-      <p class="b-status" aria-live="polite"></p>
-    </section>` : ''}
     ${tour.play ? `<section class="b-play" aria-label="${esc(tour.play.title)}">
       <h3>${esc(tour.play.title)}</h3>
       <p>${esc(tour.play.pitch)}</p>
@@ -59,7 +93,6 @@ function showBrief(tour, screen) {
   overlay.classList.add('reading');
   $('#b-title').focus({ preventScroll: true });
   brief.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => screen.goto(+b.dataset.step)));
-  const unLive = tour.live ? wireLive(screen) : () => {};
   const unPlay = tour.play ? wirePlay(tour.play.id, screen) : () => {};
   const items = [...brief.querySelectorAll('.b-steps li')];
   let raf = 0, lastStep = -1;
@@ -68,7 +101,7 @@ function showBrief(tour, screen) {
     if (screen.step !== lastStep) { lastStep = screen.step; items.forEach((li, i) => li.classList.toggle('now', i === screen.step)); }
   };
   sync();
-  return () => { cancelAnimationFrame(raf); unLive(); unPlay(); };
+  return () => { cancelAnimationFrame(raf); unPlay(); };
 }
 
 // the tour's game (src/play/): played in the panel, on the same in-browser model, with the result on the screen
@@ -76,37 +109,6 @@ function wirePlay(id, screen) {
   let alive = true, unmount = () => {};
   import('./play/index.js').then((m) => { if (alive) unmount = m.mountPlay(id, brief.querySelector('.b-play'), screen); });
   return () => { alive = false; unmount(); };
-}
-
-// the "run it on a real model" panel: loads DistilGPT-2 once (src/llm/), then the screen shows the live run
-function wireLive(screen) {
-  const box = brief.querySelector('.b-live'), go = box.querySelector('.b-go'), form = box.querySelector('.b-form');
-  const ta = box.querySelector('textarea'), range = box.querySelector('input'), out = box.querySelector('output'), again = box.querySelector('.b-run'), status = box.querySelector('.b-status');
-  let unsub = () => {}, alive = true;
-  import('./llm/live.js').then((L) => {
-    if (!alive) return;
-    const S = L.state; screen.attachLive?.(S);
-    ta.value = S.text; range.value = S.budget; out.textContent = S.budget;
-    range.oninput = () => { out.textContent = range.value; };
-    const render = () => {
-      const names = { full: 'full cache', stream: 'StreamingLLM', h2o: 'H2O', snap: 'SnapKV', fl: 'facility location' };
-      go.hidden = S.phase !== 'idle' && S.phase !== 'error';
-      form.hidden = !(S.phase === 'ready' || S.phase === 'done' || S.phase === 'running');
-      again.disabled = S.phase === 'running';
-      if (S.phase === 'loading') status.textContent = `Downloading ${(S.got / 1e6).toFixed(0)} of ${((S.total || 85e6) / 1e6).toFixed(0)} MB…`;
-      else if (S.phase === 'running') { const n = Object.values(S.runs).filter((r) => r.done).length; status.textContent = `Running ${S.ids.length} tokens through 5 caches on ${S.backend}: ${n} of 5 done.`; }
-      else if (S.phase === 'done') {
-        const rank = ['stream', 'h2o', 'snap', 'fl'].map((p) => [p, S.runs[p].ppl]).sort((a, b) => a[1] - b[1]);
-        status.textContent = `At ${S.budget} entries per layer, ${names[rank[0][0]]} kept perplexity closest to the full cache, at ${rank[0][1].toFixed(1)} against ${S.runs.full.ppl.toFixed(1)}. ${names[rank[3][0]]} lost the most, at ${rank[3][1].toFixed(1)}. Click a step to see each policy's attention.`;
-      } else if (S.phase === 'error') status.textContent = 'The model could not load here. Try a desktop browser.';
-      else status.textContent = '';
-    };
-    unsub = L.subscribe(render); render();
-    const start = () => { screen.manual = false; L.run(ta.value.trim() || L.DEFAULT_TEXT, +range.value); };
-    go.onclick = () => { go.hidden = true; L.load().then(() => { if (alive && S.phase === 'ready') start(); }); };
-    again.onclick = start;
-  });
-  return () => { alive = false; unsub(); };
 }
 
 // the room's name, decoding over the scene as we arrive
@@ -127,17 +129,11 @@ function showTitle(place, building) {
 
 // no WebGL (or reduced motion): the same screen, flat on the page, with the same overlay
 async function playFlat(tour, me) {
-  const { makeScreen } = await screensMod();
+  const mini = await miniScreen(flat.querySelector('canvas'), tour);
   if (current !== me) return;
-  flat.hidden = false;
-  const cv = flat.querySelector('canvas'), ctx = cv.getContext('2d');
-  cv.width = 1024; cv.height = SCREEN_H[tour.place];
-  const screen = makeScreen(tour.visual, cv.width, cv.height);
-  let last = performance.now(), raf = 0;
-  const loop = (t) => { raf = requestAnimationFrame(loop); screen.frame(ctx, Math.min(0.1, (t - last) / 1000)); last = t; };
-  raf = requestAnimationFrame(loop);
-  const stopBrief = showBrief(tour, screen);
-  me.stopSync = () => { cancelAnimationFrame(raf); stopBrief(); flat.hidden = true; };
+  flat.hidden = false; mini.start();
+  const stopBrief = showBrief(tour, mini.screen);
+  me.stopSync = () => { mini.stop(); stopBrief(); flat.hidden = true; };
 }
 
 function open(id, opener, from) {
@@ -155,13 +151,14 @@ function open(id, opener, from) {
   const flatMode = !webgl || reduce();
   skipBtn.hidden = flatMode;
   if (flatMode) { where.innerHTML = `<b>${esc(place.building)}</b> ${esc(place.name)}`; playFlat(tour, me); return; }
-  me.warp = enter(warpCv, from || { x: innerWidth / 2, y: innerHeight / 2 }, [place.building, `${place.name}  //  32.986 N  96.748 W`]);
+  me.warp = enter(warpCv, from || { x: innerWidth / 2, y: innerHeight / 2 }, [place.building, `${place.name}  //  ${place.latlon || '32.986 N  96.748 W'}`]);
   tourMod().then((m) => {
     if (current !== me) return;
     me.run = m.runTour(tour, {
       canvas,
       label: (code, name) => { where.innerHTML = `<b>${esc(code)}</b> ${esc(name)}`; },
       status: (s) => { status.textContent = s; },
+      hud: (s) => { hud.textContent = s; hud.hidden = !s; },
       reveal: () => me.warp.release(),
       cross: { cover: () => (me.blocks = blocks(warpCv)).cover(), reveal: () => me.blocks.reveal() },
       title: (p, building) => showTitle(p, building),
@@ -184,7 +181,7 @@ function close(fromHistory = false) {
   if (run) run.stop();
   if (stopSync) stopSync();
   if (warp) warp.stop(); if (bl) bl.stop();
-  overlay.hidden = true; brief.hidden = true; flat.hidden = true; title.hidden = true;
+  overlay.hidden = true; brief.hidden = true; flat.hidden = true; title.hidden = true; hud.hidden = true;
   document.body.classList.remove('touring');
   if (!fromHistory) try { if (pushed) history.back(); else history.replaceState(null, '', location.pathname + location.search); } catch { /* ignore */ }
   if (opener) opener.focus({ preventScroll: true });
@@ -196,3 +193,51 @@ viewBtn.addEventListener('click', () => { if (current && current.run) current.ru
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && current) close(); });
 addEventListener('popstate', () => { const id = location.hash.slice(1); if (current && !TOURS[id]) close(true); else if (TOURS[id] && !current) open(id); });
 if (TOURS[location.hash.slice(1)]) open(location.hash.slice(1));
+
+// the clock on the plate: it is always now in Richardson
+{
+  const cap = $('.plan figcaption');
+  const fmt = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago' });
+  const tick = () => { cap.innerHTML = `UT Dallas, Richardson, Texas <b>${fmt.format(new Date()).toLowerCase()}</b>`; };
+  tick(); setInterval(tick, 20000);
+}
+// entries come in as you reach them
+document.documentElement.classList.add('js');
+const seen = new IntersectionObserver((es) => es.forEach((e) => {
+  if (!e.isIntersecting) return;
+  e.target.classList.add('in'); seen.unobserve(e.target);
+}), { rootMargin: '0px 0px -6% 0px' });
+for (const el of document.querySelectorAll('[data-reveal]')) seen.observe(el);
+// the bar across the top appears once the hero has scrolled away
+{
+  const top = $('.top'), hero = $('.hero');
+  new IntersectionObserver(([e]) => top.classList.toggle('show', !e.isIntersecting), { rootMargin: '-80px 0px 0px 0px' }).observe(hero);
+}
+// the plate tilts a little toward the pointer
+{
+  const plate = $('.plan');
+  if (plate && canPeek && !reduce()) {
+    let want = [0, 0], cur = [0, 0], raf = 0, r = null;   // r: the plate's box, read once per visit (it moves as it tilts)
+    const tick = () => {
+      cur = cur.map((c, i) => c + (want[i] - c) * 0.1);
+      plate.style.transform = `perspective(1400px) rotateX(${cur[0].toFixed(2)}deg) rotateY(${cur[1].toFixed(2)}deg)`;
+      raf = Math.abs(cur[0] - want[0]) + Math.abs(cur[1] - want[1]) > 0.01 ? requestAnimationFrame(tick) : 0;
+    };
+    const go = () => { if (!raf) raf = requestAnimationFrame(tick); };
+    plate.addEventListener('pointerenter', () => { r = plate.getBoundingClientRect(); });
+    plate.addEventListener('pointermove', (e) => { r ||= plate.getBoundingClientRect(); want = [-((e.clientY - r.top) / r.height - 0.5) * 6, ((e.clientX - r.left) / r.width - 0.5) * 8]; go(); });
+    plate.addEventListener('pointerleave', () => { want = [0, 0]; r = null; go(); });
+  }
+}
+// the work cards: each shows its room's screen, drawn as it comes into view and running while you're over it
+{
+  const shot = async (card) => {
+    const tour = TOURS[card.dataset.tour], cv = card.querySelector('canvas'); if (!tour || !cv) return;
+    const mini = await miniScreen(cv, tour, 0.5);
+    mini.fit(); for (let i = 0; i < 12; i++) mini.screen.frame(mini.ctx, 0.3);   // a few seconds in, so there's something on it
+    card.addEventListener('pointerenter', () => { if (!reduce()) mini.start(); });
+    card.addEventListener('pointerleave', () => mini.stop());
+  };
+  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { io.unobserve(e.target); shot(e.target); } }), { rootMargin: '240px 0px' });
+  for (const c of document.querySelectorAll('.card[data-tour]')) io.observe(c);
+}

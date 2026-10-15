@@ -4,7 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Akash Dasarraju</title>
-  <meta name="description" content="Akash Dasarraju, computer science at UT Dallas. Research on data-efficient machine learning and LLM inference in the CARAML Lab; organizer at HackUTD.">
+  <meta name="description" content="Akash Dasarraju, computer science at UT Dallas. ML systems and LLM inference: KV-cache compression, GPU kernels, and submodular methods for data-efficient learning in the CARAML Lab. Organizer at HackUTD.">
+  <meta name="theme-color" content="#0b1613">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Akash Dasarraju">
+  <meta property="og:description" content="ML systems and LLM inference at UT Dallas: a résumé you can walk into. KV-cache compression, HIP kernels, submodular data selection, HackUTD.">
+  <meta property="og:image" content="https://sky1219.github.io/og.jpg">
+  <meta property="og:url" content="https://sky1219.github.io/">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 20'%3E%3Cpath d='M8 19s6-6.2 6-11A6 6 0 0 0 2 8c0 4.8 6 11 6 11Z' fill='%23d9620f'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,6 +19,10 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <nav class="top" aria-label="Sections">
+    <a class="top-name" href="#top">Akash Dasarraju</a>
+    <a href="#work">Work</a><a href="#h-research">Research</a><a href="#h-lead">HackUTD</a><a href="#h-edu">Education</a><a href="#contact">Contact</a>
+  </nav>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <symbol id="i-pin" viewBox="0 0 16 20"><path d="M8 19s6-6.2 6-11A6 6 0 0 0 2 8c0 4.8 6 11 6 11Z" fill="currentColor"/><circle cx="8" cy="8" r="2.3" fill="var(--paper)"/></symbol>
     <defs>
@@ -20,118 +31,173 @@
     </defs>
   </svg>
 
-  <header class="hero">
+  <header class="hero" id="top">
     <div class="hero-text">
+      <p class="tag">ML systems &middot; LLM inference &middot; UT Dallas, CS &rsquo;29</p>
       <h1><span>Akash</span> <span>Dasarraju</span></h1>
-      <p class="intro">I study computer science at UT Dallas and research data-efficient machine learning and LLM inference in the CARAML Lab. I also help organize HackUTD, a 1,300-person student hackathon, and build side projects on LLM inference and learning agents.</p>
-      <p class="how"><svg aria-hidden="true"><use href="#i-pin"/></svg>Click an orange link to see the room on campus where that work happens.</p>
+      <p class="intro">I study computer science at UT Dallas and work on ML systems and LLM inference. In the CARAML Lab I research submodular methods for data-efficient learning and agent memory, and on my own time I write GPU kernels, benchmark KV-cache compression and train game-playing agents. I also help organize HackUTD, a 1,300-person student hackathon. I'm looking for a summer 2027 internship and open to part-time research now.</p>
+      <p class="how"><svg aria-hidden="true"><use href="#i-pin"/></svg><span>Tap an orange link to see the room where that work happens.<span class="hover-only"> Hover one first for a look at its screen.</span></span></p>
       <nav class="contact" aria-label="Contact">
         <a href="mailto:dasarrajuakash@gmail.com">dasarrajuakash@gmail.com</a>
         <a href="https://github.com/Sky1219" target="_blank" rel="noopener">GitHub</a>
         <a href="https://www.linkedin.com/in/akash-dasarraju-143520240" target="_blank" rel="noopener">LinkedIn</a>
       </nav>
     </div>
-    <figure class="plan" aria-label="UT Dallas at night, with the three places on this page">
+    <figure class="plan" aria-label="UT Dallas at night, with the four places on this page">
       {{PLAN}}
       <svg class="plan-leaders" viewBox="0 0 1000 1000" aria-hidden="true">
-        <path d="M548 498 L566 382 H572"/><path d="M528 532 L700 640 H712"/><path d="M422 522 L340 690 V702"/>
-        <circle cx="548" cy="498" r="8"/><circle cx="528" cy="532" r="8"/><circle cx="422" cy="522" r="8"/>
+        <path d="M702 234 L722 120 H730"/><path d="M686 262 L850 400 H860"/><path d="M598 254 L430 408 V420"/><path d="M310 752 L335 690 H345"/>
+        <circle cx="702" cy="234" r="8"/><circle cx="686" cy="262" r="8"/><circle cx="598" cy="254" r="8"/><circle cx="310" cy="752" r="8"/>
       </svg>
-      <a class="pin" href="#subset" data-tour="subset" style="--x:572; --y:382; --d:0">CARAML Research Lab<small>ECSS, research</small></a>
-      <a class="pin" href="#teaching" data-tour="teaching" style="--x:712; --y:640; --d:1">Lecture hall<small>ECSS, teaching</small></a>
-      <a class="pin below" href="#hackutd" data-tour="hackutd" style="--x:340; --y:702; --d:2">HackUTD<small>ECSW, organizing</small></a>
+      <a class="pin" href="#subset" data-tour="subset" data-building="ECSS" style="--x:730; --y:120; --d:0">CARAML Research Lab<small>ECSS, research</small></a>
+      <a class="pin" href="#teaching" data-tour="teaching" data-building="ECSS" style="--x:860; --y:400; --d:1">Lecture hall<small>ECSS, teaching</small></a>
+      <a class="pin below" href="#hackutd" data-tour="hackutd" data-building="ECSW" style="--x:430; --y:420; --d:2">HackUTD<small>ECSW, organizing</small></a>
+      <a class="pin" href="#hipinfer" data-tour="hipinfer" data-building="CH6" style="--x:345; --y:690; --d:3">My apartment<small>Canyon Creek Heights South, hipinfer</small></a>
       <figcaption>UT Dallas, Richardson, Texas</figcaption>
     </figure>
   </header>
 
+  <section class="work" id="work" aria-labelledby="h-work">
+    <div class="work-head">
+      <p class="sec-k">Work</p>
+      <h2 id="h-work">Six things, each with a room</h2>
+      <p>The picture on every card is that room's screen, running.<span class="hover-only"> Hover to watch it;</span> tap a card to go there.</p>
+    </div>
+    <div class="cards">
+      <a class="card" data-reveal href="#hipinfer" data-tour="hipinfer">
+        <div class="shot"><canvas aria-hidden="true"></canvas></div>
+        <div class="card-body"><p class="card-k">Project &middot; Canyon Creek Heights</p><h3>hipinfer</h3><p>An inference engine written as HIP kernels, decoding TinyLlama at 87% of the GPU's memory-bandwidth limit.</p>
+          <ul><li>4.1 ms per token on an RTX 2080 Ti</li><li>8 to 16% faster than llama.cpp and vLLM, 6&times; Hugging Face</li></ul></div>
+      </a>
+      <a class="card" data-reveal href="#kv" data-tour="kv">
+        <div class="shot"><canvas aria-hidden="true"></canvas></div>
+        <div class="card-body"><p class="card-k">Project &middot; CARAML Lab</p><h3>SubCache</h3><p>A KV-cache compression benchmark for LLM inference, with five eviction methods and one of my own.</p>
+          <ul><li>3&times; the concurrent requests at a quarter of the cache</li><li>2.8&times; throughput for 5% more perplexity</li></ul></div>
+      </a>
+      <a class="card" data-reveal href="#mnk" data-tour="mnk">
+        <div class="shot"><canvas aria-hidden="true"></canvas></div>
+        <div class="card-body"><p class="card-k">Project &middot; CARAML Lab</p><h3>mnk-bench</h3><p>Ten ways to play (m, n, k) games on one bench, from matchboxes to a self-play network to an LLM.</p>
+          <ul><li>39k-parameter AlphaZero-style net, never lost at tic-tac-toe</li><li>Data selection found 2 to 3&times; more useful positions to label</li></ul></div>
+      </a>
+      <a class="card" data-reveal href="#subset" data-tour="subset">
+        <div class="shot"><canvas aria-hidden="true"></canvas></div>
+        <div class="card-body"><p class="card-k">Research &middot; CARAML Lab</p><h3>Submodular subset selection</h3><p>Picking the slice of a dataset that trains a model nearly as well as all of it, and turning that into a training loss.</p>
+          <ul><li>Submodular losses with hard negatives for CLIP-style models</li><li>Paper in preparation, targeting CVPR</li></ul></div>
+      </a>
+      <a class="card" data-reveal href="#memory" data-tour="memory">
+        <div class="shot"><canvas aria-hidden="true"></canvas></div>
+        <div class="card-body"><p class="card-k">Research &middot; CARAML Lab</p><h3>Memory for LLM agents</h3><p>Choosing which past turns an agent keeps under a fixed token budget, with a submodular objective.</p>
+          <ul><li>Against top-k and MMR on the LoCoMo benchmark</li><li>Qwen2.5-32B on vLLM; paper targeting ICML</li></ul></div>
+      </a>
+      <a class="card" data-reveal href="#hackutd" data-tour="hackutd">
+        <div class="shot"><canvas aria-hidden="true"></canvas></div>
+        <div class="card-body"><p class="card-k">Leadership &middot; ECSW</p><h3>HackUTD</h3><p>On the team that runs a 1,300-person hackathon: the events, the logistics, the sponsors, and a prompt-injection CTF.</p>
+          <ul><li>10 AI workshops; attendance tripled after I redesigned the lineup</li><li>Teaching RAG, MCP and agents to full rooms</li></ul></div>
+      </a>
+    </div>
+  </section>
+
   <main>
+    <section aria-labelledby="h-projects">
+      <h2 id="h-projects">Projects</h2>
+      <article class="entry" data-reveal>
+        <div class="entry-head">
+          <h3>SubCache</h3>
+          <a class="room" href="#kv" data-tour="kv"><svg aria-hidden="true"><use href="#i-pin"/></svg>ECSS lab</a>
+          <p class="meta"><span>Python, PyTorch. <a href="https://github.com/Sky1219/SubCache" target="_blank" rel="noopener">GitHub</a></span><time>2026</time></p>
+        </div>
+        <ul>
+          <li>Built an open-source <a class="place" href="#kv" data-tour="kv">KV-cache compression benchmark<svg><use href="#i-pin"/></svg></a> for LLM inference. Keeping 25% of the cache fit 3x more concurrent requests on one GPU and raised throughput 2.8x (64% lower cost per token), for a 5% rise in perplexity.</li>
+          <li>Benchmarked 5 eviction methods, including the published baselines H2O, StreamingLLM and SnapKV, on DeepSeek-Coder 1.3B and TinyLlama across two GPUs (RTX 2080 Ti, A6000).</li>
+          <li>Designed a new eviction method that beat H2O on output quality by up to 1.4% on AI-agent workloads.</li>
+        </ul>
+      </article>
+      <article class="entry" data-reveal>
+        <div class="entry-head">
+          <h3>mnk-bench</h3>
+          <a class="room" href="#mnk" data-tour="mnk"><svg aria-hidden="true"><use href="#i-pin"/></svg>ECSS lab</a>
+          <p class="meta"><span>Python, PyTorch. <a href="https://github.com/Sky1219/mnk-bench" target="_blank" rel="noopener">GitHub</a>, <a href="https://sky1219.github.io/mnk-bench" target="_blank" rel="noopener">live demo</a></span><time>2026</time></p>
+        </div>
+        <ul>
+          <li>Built an open-source framework that benchmarks 10 game-playing AI methods, from classic search to self-play neural networks and LLMs, on boards from <a class="place" href="#mnk" data-tour="mnk">tic-tac-toe to Gomoku<svg><use href="#i-pin"/></svg></a>, with a CLI, 118 tests and CI.</li>
+          <li>Trained a 39k-parameter AlphaZero-style network by self-play in under 15 minutes per board on one CPU core. It never lost to a perfect player at tic-tac-toe or 4&times;4, and matched the strongest search agent at Connect Four.</li>
+          <li>Applied my lab's <a class="place" href="#subset" data-tour="subset">targeted data-selection research<svg><use href="#i-pin"/></svg></a> to games, choosing which positions to label to fix an agent's tactical blind spots. It found 2 to 3x more relevant examples than random selection.</li>
+        </ul>
+      </article>
+      <article class="entry" data-reveal>
+        <div class="entry-head">
+          <h3>hipinfer</h3>
+          <a class="room" href="#hipinfer" data-tour="hipinfer"><svg aria-hidden="true"><use href="#i-pin"/></svg>CH6 apartment</a>
+          <p class="meta"><span>HIP, Python. <a href="https://github.com/Sky1219/hipinfer" target="_blank" rel="noopener">GitHub</a></span><time>2026 to present</time></p>
+        </div>
+        <ul>
+          <li>Fastest of the engines I benchmarked at batch-1 decode on TinyLlama-1.1B: <a class="place" href="#hipinfer" data-tour="hipinfer">4.1 ms per token on an RTX 2080 Ti<svg><use href="#i-pin"/></svg></a> (87% of the memory-bandwidth limit), 8 to 16% faster than llama.cpp and vLLM, and 6x faster than Hugging Face.</li>
+          <li>Wrote FlashAttention-2-style attention, split-K GEMM and fused RMSNorm/RoPE kernels in HIP, with output token-identical to Hugging Face. Verified on NVIDIA GPUs; the AMD builds are not yet hardware-tested.</li>
+        </ul>
+      </article>
+    </section>
+
     <section aria-labelledby="h-research">
       <h2 id="h-research">Research</h2>
-      <article class="entry">
+      <article class="entry" data-reveal>
         <div class="entry-head">
           <h3>Undergraduate Research Assistant, CARAML Lab</h3>
           <a class="room" href="#subset" data-tour="subset"><svg aria-hidden="true"><use href="#i-pin"/></svg>ECSS lab</a>
           <p class="meta"><span>Prof. Rishabh Iyer, UT Dallas</span><time>2026 to present</time></p>
         </div>
         <ul>
-          <li>Research data-efficient machine learning using <a class="place" href="#subset" data-tour="subset">submodular subset selection<svg><use href="#i-pin"/></svg></a>, with applications to computer vision and multimodal models.</li>
-          <li>Developing submodular methods for <a class="place" href="#memory" data-tour="memory">choosing the most useful context from earlier turns<svg><use href="#i-pin"/></svg></a> in long multi-turn LLM conversations (agentic memory). Two papers in preparation.</li>
-          <li>Investigating <a class="place" href="#kv" data-tour="kv">submodular KV-cache eviction<svg><use href="#i-pin"/></svg></a> for LLM inference, advised by a PhD student in the lab.</li>
-        </ul>
-      </article>
-      <article class="entry">
-        <div class="entry-head">
-          <h3>Intern, ALPS Lab</h3>
-          <p class="meta"><span>Prof. Gopal Gupta, UT Dallas</span><time>2023</time></p>
-        </div>
-        <ul><li>Analyzed datasets with lab-developed tools; learned Prolog, principles of AI and commonsense reasoning.</li></ul>
-      </article>
-    </section>
-
-    <section aria-labelledby="h-projects">
-      <h2 id="h-projects">Projects</h2>
-      <article class="entry">
-        <div class="entry-head">
-          <h3>sub-cache</h3>
-          <a class="room" href="#kv" data-tour="kv"><svg aria-hidden="true"><use href="#i-pin"/></svg>ECSS lab</a>
-          <p class="meta"><span>Python, PyTorch</span><time>2026 to present</time></p>
-        </div>
-        <ul>
-          <li>Building a <a class="place" href="#kv" data-tour="kv">submodular KV-cache eviction method<svg><use href="#i-pin"/></svg></a> for LLM inference, with H2O, StreamingLLM and SnapKV as planned baselines.</li>
-          <li>Measuring the quality, memory and latency tradeoffs of eviction policies during decoding.</li>
-        </ul>
-      </article>
-      <article class="entry">
-        <div class="entry-head">
-          <h3>mnk-bench</h3>
-          <a class="room" href="#mnk" data-tour="mnk"><svg aria-hidden="true"><use href="#i-pin"/></svg>ECSS lab</a>
-          <p class="meta"><span>Python</span><time>2026 to present</time></p>
-        </div>
-        <ul>
-          <li>Extending <a class="place" href="#mnk" data-tour="mnk">MENACE, a matchbox-style reinforcement learning tic-tac-toe agent<svg><use href="#i-pin"/></svg></a>, into a benchmark for general (m, n, k) games such as Gomoku.</li>
-          <li>Automatically generates learning-curve graphs to compare agents across board sizes and win conditions.</li>
+          <li>Own the implementation and experiments for two papers in preparation.</li>
+          <li>Developing <a class="place" href="#subset" data-tour="subset">submodular training losses<svg><use href="#i-pin"/></svg></a> that use hard negatives to teach CLIP-style vision-language models which attributes belong to which objects. Trained and evaluated several loss functions and generated training data. Targeting CVPR.</li>
+          <li>Developing a submodular method that <a class="place" href="#memory" data-tour="memory">chooses which past conversation turns an LLM agent keeps<svg><use href="#i-pin"/></svg></a> under a fixed token budget, compared against top-k and MMR retrieval on the LoCoMo benchmark, self-hosting Qwen2.5-32B with vLLM on an A6000. Targeting ICML.</li>
         </ul>
       </article>
     </section>
 
     <section aria-labelledby="h-lead">
       <h2 id="h-lead">Leadership</h2>
-      <article class="entry">
+      <article class="entry" data-reveal>
         <div class="entry-head">
           <h3>Organizer, HackUTD leadership team</h3>
           <a class="room" href="#hackutd" data-tour="hackutd"><svg aria-hidden="true"><use href="#i-pin"/></svg>ECSW</a>
           <p class="meta"><span>UT Dallas</span><time>2026 to present</time></p>
         </div>
         <ul>
-          <li>Help organize a <a class="place" href="#hackutd" data-tour="hackutd">1,300-participant collegiate hackathon<svg><use href="#i-pin"/></svg></a>, which includes planning events, handling logistics, coordinating with industry representatives and designing our CTF.</li>
-          <li><a class="place" href="#teaching" data-tour="teaching">Teach workshops on building with AI<svg><use href="#i-pin"/></svg></a> for hundreds of participants.</li>
+          <li>Help organize a <a class="place" href="#hackutd" data-tour="hackutd">1,300-participant hackathon<svg><use href="#i-pin"/></svg></a>: events, logistics, sponsor coordination with T-Mobile, and our CTF.</li>
+          <li>Tripled average workshop attendance, from 30 to over 100, by redesigning topic selection across <a class="place" href="#teaching" data-tour="teaching">10 AI workshops<svg><use href="#i-pin"/></svg></a>, leading 5 and assisting 5.</li>
         </ul>
       </article>
     </section>
 
     <section aria-labelledby="h-edu">
       <h2 id="h-edu">Education</h2>
-      <article class="entry">
+      <article class="entry" data-reveal>
         <div class="entry-head">
           <h3>B.S. Computer Science, CS<sup>2</sup> Honors Program</h3>
-          <p class="meta"><span>The University of Texas at Dallas</span><time>2025 to 2029</time></p>
+          <p class="meta"><span>The University of Texas at Dallas</span><time>2025 to 2029 (expected)</time></p>
         </div>
         <ul>
           <li>GPA 3.84. National Merit Finalist. ACT 36.</li>
-          <li>Coursework: Data Structures and Algorithms (Honors), Machine Learning Statistics (Honors), Linear Algebra, Undergraduate Research.</li>
+          <li>Coursework: Linear Algebra, Calculus, Statistics for ML (Honors), Data Structures and Algorithms (Honors), Computer Architecture.</li>
         </ul>
       </article>
     </section>
 
     <section aria-labelledby="h-skills">
       <h2 id="h-skills">Skills</h2>
-      <dl class="skills">
-        <dt>Languages</dt><dd>Python, Java, CUDA</dd>
-        <dt>Frameworks and hardware</dt><dd>PyTorch, NVIDIA GPUs, AMD GPUs</dd>
-        <dt>Focus</dt><dd>Submodular optimization, data-efficient ML, GPU performance benchmarking, LLM inference, KV-cache management</dd>
+      <dl class="skills" data-reveal>
+        <dt>Languages</dt><dd>Python, Java, CUDA, HIP</dd>
+        <dt>Hardware and frameworks</dt><dd>NVIDIA GPUs (CUDA), HIP/ROCm, PyTorch</dd>
+        <dt>Focus</dt><dd>Submodular optimization, data-efficient ML, GPU kernels and benchmarking, LLM inference</dd>
       </dl>
     </section>
   </main>
+
+  <section class="cta" id="contact" aria-labelledby="h-contact">
+    <p class="sec-k">Contact</p>
+    <h2 id="h-contact">Looking for a summer 2027 internship in ML systems. Open to part-time research now.</h2>
+    <a class="cta-mail" href="mailto:dasarrajuakash@gmail.com">dasarrajuakash@gmail.com</a>
+    <p class="cta-links"><a href="https://github.com/Sky1219" target="_blank" rel="noopener">GitHub</a><a href="https://www.linkedin.com/in/akash-dasarraju-143520240" target="_blank" rel="noopener">LinkedIn</a></p>
+  </section>
 
   <footer>
     <p>Campus geometry from OpenStreetMap contributors. Rooms modelled in Blender.</p>
@@ -147,6 +213,7 @@
       <button type="button" id="tour-skip" class="tour-btn">Skip ahead</button>
     </div>
     <p id="tour-status" class="tour-status" aria-live="polite"></p>
+    <p id="tour-hud" class="tour-hud" hidden aria-hidden="true"></p>
     <div id="room-title" class="room-title" hidden aria-live="polite"></div>
     <aside id="brief" class="brief" hidden aria-labelledby="b-title"></aside>
   </div>

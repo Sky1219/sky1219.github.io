@@ -3,7 +3,7 @@
 // next token. A recency-only pick and a probabilistic-set-cover pick (cost-sensitive greedy) are measured too.
 import { C, text, rect, pane, clamp, fit, MONO } from '../screens/kit.js';
 import { engine, ask, encode } from '../llm/engine.js';
-import { esc, pct, piece } from './index.js';
+import { esc, pct, piece, about, table } from './index.js';
 
 export const TURNS = [
   ['User', 'My dog is named Pepper and she hates long drives.'],
@@ -79,15 +79,17 @@ export function mount(root, screen) {
   let alive = true, seq = 0, warn = '';
   const log = (s, c = C.ink) => S.logs.push([s, c]);
   root.innerHTML = `
-    <p class="g-note">The conversation ends with <b>“${esc(QUESTION)}”</b> The model can only answer if the turn with the answer is in its context, and only ${BUDGET} tokens fit (a token is roughly a word). Drag or click turns into the context. The score is the probability that the model gives the right answer. It is compared with keeping only the latest turns, and with set cover, which picks the turns most relevant to the question.</p>
+    ${about(`Whether the turns kept under a ${BUDGET}-token budget still let the model answer a question whose answer was in turn 1. Recency keeps the latest turns that fit; set cover keeps the turns that share words with the question. The score is the probability the model gives the right name as its next token.`,
+              'An agent\'s memory has the same problem at scale: thousands of turns, one fixed context window. My paper scores past turns with a submodular set-cover objective, so what survives is what the request needs rather than what was said last.')}
+    <p class="g-note">The conversation ends with <b>“${esc(QUESTION)}”</b> Only ${BUDGET} tokens fit (a token is roughly a word). Drag or click turns into the context.</p>
     <p class="g-label">Conversation</p>
     <ol class="g-list g-out" aria-label="Conversation"></ol>
     <p class="g-label">Context sent to the model <span class="g-count"></span></p>
     <div class="g-meter"><i></i></div>
     <ol class="g-list g-in" aria-label="Context sent to the model"></ol>
-    <p class="g-result" aria-live="polite"></p>`;
+    <div class="g-result" aria-live="polite"></div>`;
   const lists = { out: root.querySelector('.g-out'), in: root.querySelector('.g-in') }, count = root.querySelector('.g-count'), meter = root.querySelector('.g-meter i'), result = root.querySelector('.g-result');
-  const say = (r) => `“${ANSWER.trim()}” at ${pct(r.p)}${r.says === ANSWER.trim() ? '' : `, and it would rather say “${r.says}”`}`;
+  const picks = () => ({ you: S.mine, recent: S.res.recent ? S.res.recent.pick : [], cover: S.res.cover ? S.res.cover.pick : [] });
   const render = () => {
     const item = (i) => `<li class="g-item g-turn" draggable="true" role="button" tabindex="0" data-i="${i}"><b>${TURNS[i].who}</b> ${esc(TURNS[i].say)}<span class="g-cost">${cost[i]}</span></li>`;
     const mine = S.mine.slice().sort((a, b) => a - b);
@@ -95,8 +97,11 @@ export function mount(root, screen) {
     lists.in.innerHTML = mine.map(item).join('') || '<li class="g-empty">Drop turns here</li>';
     count.textContent = `${used(S.mine)} of ${BUDGET} tokens`;
     meter.style.width = `${(used(S.mine) / BUDGET) * 100}%`;
-    const { you, recent, cover } = S.res;
-    result.textContent = warn || [you && `Your context: ${say(you)}.`, recent && `Recency only: ${say(recent)}.`, cover && `Set cover: ${say(cover)}.`].filter(Boolean).join(' ');
+    const P = picks(), rows = WHO.map((who) => { const r = S.res[who]; return [NAME[who], `${used(P[who])}/${BUDGET}`, r ? pct(r.p) : S.mine.length || who !== 'you' ? '…' : '–', r ? (r.says === ANSWER.trim() ? `<span class="g-ok">${esc(r.says)}</span>` : esc(r.says)) : '']; });
+    const best = WHO.reduce((b, who, i) => (S.res[who] && (b < 0 || S.res[who].p > S.res[WHO[b]].p) ? i : b), -1);
+    const first = P.you.includes(0), hasRecent = !!S.res.recent, hasCover = !!S.res.cover;
+    result.innerHTML = (warn ? `<p class="g-verdict">${esc(warn)}</p>` : '') + table(['', 'tokens', `P(${esc(ANSWER.trim())})`, 'says'], rows, best)
+      + `<p class="g-verdict">${hasRecent ? `Recency fills the budget from the end and never reaches turn 1, so it cannot know the name. ` : ''}${hasCover ? `Set cover spends ${S.cost[0]} of its tokens on turn 1 because it shares "dog" with the question. ` : ''}${S.mine.length ? (first ? 'Your context has turn 1 in it, so the answer is in reach.' : 'Turn 1 is not in your context, so the model can only guess.') : ''}</p>`;
   };
   // move a turn into the context (if it fits) or back out, then ask the model again
   const move = async (i, into = !S.mine.includes(i)) => {

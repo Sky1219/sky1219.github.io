@@ -48,8 +48,8 @@ const gelu = (x) => 0.5 * x * (1 + Math.tanh(0.7978845608028654 * (x + 0.044715 
 /* One decoding session with its own KV cache.
    policy: 'full' | 'stream' | 'h2o' | 'snap' | 'fl'. budget: max entries kept per layer. */
 export class Session {
-  constructor(model, { policy = 'full', budget = Infinity, maxLen = 512 } = {}) {
-    this.m = model; this.policy = POLICIES[policy]; this.budget = policy === 'full' ? Infinity : budget;
+  constructor(model, { policy = 'full', budget = Infinity, maxLen = 512, keep = [] } = {}) {
+    this.m = model; this.policy = POLICIES[policy]; this.budget = policy === 'full' ? Infinity : budget; this.keep = new Set(keep);
     const { D, L } = model, cap = Math.min(maxLen, this.budget === Infinity ? maxLen : this.budget + 1);
     this.cap = cap; this.t = 0;
     // per layer: keys, values, the original position of each entry, attention it has received, and the last
@@ -95,7 +95,7 @@ export class Session {
       for (let i = 0; i < D; i++) x[i] += this.o[i];
       // over budget: the policy picks one entry of this layer's cache to drop
       if (C.pos.length > this.budget) {
-        const j = this.policy.evict(C, this.budget, D);
+        const j = this.policy.evict(C, this.budget, D, this.keep);
         if (l === watch) evicted.push(C.pos[j]);
         C.K.copyWithin(j * D, (j + 1) * D, C.pos.length * D); C.V.copyWithin(j * D, (j + 1) * D, C.pos.length * D);
         C.pos.splice(j, 1); C.acc.splice(j, 1); C.obs.splice(j, 1);

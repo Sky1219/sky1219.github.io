@@ -4,10 +4,10 @@
 # Blender axes: x across the room, y towards the back wall, z up. The room is 6.5 x 9.0 x 3.0 m, the door is in
 # the front wall, the computer the tour plays on is on the left wall near the back, facing into the room, and
 # there is a whiteboard on the right wall.
-import bpy, bmesh, math, os
-from mathutils import Matrix, Vector
+import math, os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from roomkit import box, at, star_base, chair_mesh, monitor, finish
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 W, D, H = 3.25, 4.5, 3.0                      # half width, half depth, height
 
 MATS = {                                       # name: (colour, roughness, emission colour, strength)
@@ -25,56 +25,12 @@ MATS = {                                       # name: (colour, roughness, emiss
 }
 
 
-def material(name, col, rough, emit=None, strength=0.0):
-    m = bpy.data.materials.get('lab_' + name) or bpy.data.materials.new('lab_' + name)
-    try: m.use_nodes = True
-    except Exception: pass
-    b = next(n for n in m.node_tree.nodes if n.type == 'BSDF_PRINCIPLED')
-    b.inputs['Base Color'].default_value = (*col, 1)
-    b.inputs['Roughness'].default_value = rough
-    b.inputs['Emission Color'].default_value = (*(emit or (1, 1, 1)), 1)
-    b.inputs['Emission Strength'].default_value = strength
-    return m
-
-
-meshes = {}                                    # one mesh per material, as the rooms are drawn
-
-
-def box(mat, size, loc, rot=(0, 0, 0), M=None, into=None):
-    bm = meshes.setdefault(into or mat, (bmesh.new(), mat))[0]
-    T = Matrix.Translation(loc) @ Matrix.Rotation(rot[2], 4, 'Z') @ Matrix.Rotation(rot[1], 4, 'Y') @ Matrix.Rotation(rot[0], 4, 'X') @ Matrix.Diagonal((*size, 1))
-    bmesh.ops.create_cube(bm, size=1.0, matrix=(M @ T) if M else T)
-
-
-def at(x, y, yaw=0.0, z=0.0):
-    return Matrix.Translation((x, y, z)) @ Matrix.Rotation(yaw, 4, 'Z')
-
-
 # ---------------------------------------------------------------- furniture; every piece faces +x in its own frame
-def star_base(M):
-    for k in range(5):
-        a = k * math.tau / 5
-        box('dark', (0.3, 0.045, 0.03), (0.15 * math.cos(a), 0.15 * math.sin(a), 0.07), (0, 0, a), M)
-        box('dark', (0.05, 0.05, 0.05), (0.29 * math.cos(a), 0.29 * math.sin(a), 0.025), (0, 0, a), M)
-    box('metal', (0.045, 0.045, 0.32), (0, 0, 0.23), M=M)
-
-
 def chair_taupe(M):
     star_base(M)
     box('chair_taupe', (0.46, 0.46, 0.08), (0, 0, 0.42), M=M)
     box('dark', (0.03, 0.07, 0.3), (-0.25, 0, 0.5), M=M)
     box('chair_taupe', (0.07, 0.42, 0.42), (-0.25, 0, 0.8), (0, -0.1, 0), M)
-
-
-def chair_mesh(M):
-    star_base(M)
-    box('chair_mesh', (0.5, 0.5, 0.07), (0, 0, 0.42), M=M)
-    box('chair_mesh', (0.04, 0.48, 0.62), (-0.27, 0, 0.82), (0, -0.12, 0), M)
-    box('dark', (0.03, 0.05, 0.14), (-0.32, 0, 1.17), M=M)
-    box('chair_mesh', (0.05, 0.3, 0.16), (-0.31, 0, 1.28), (0, -0.1, 0), M)
-    for s in (-1, 1):
-        box('dark', (0.04, 0.04, 0.2), (0.0, s * 0.27, 0.55), M=M)
-        box('dark', (0.26, 0.07, 0.03), (0.02, s * 0.27, 0.66), M=M)
 
 
 def chair_exec(M):
@@ -84,13 +40,6 @@ def chair_exec(M):
     for s in (-1, 1):
         box('door', (0.04, 0.05, 0.18), (0.08, s * 0.31, 0.55), M=M)
         box('chair_mauve', (0.4, 0.08, 0.06), (0.0, s * 0.31, 0.66), M=M)
-
-
-def monitor(M, w=0.6, h=0.355, zc=0.38, screen='screen_light', into=None):
-    box('dark', (0.2, 0.24, 0.012), (-0.07, 0, 0.006), M=M)
-    box('dark', (0.03, 0.06, zc), (-0.07, 0, zc / 2), M=M)
-    box('dark', (0.03, w + 0.03, h + 0.03), (-0.019, 0, zc), M=M)
-    box(screen, (0.004, w, h), (-0.002, 0, zc), M=M, into=into)
 
 
 def desk(x0, x1, y0, y1, legs='dark'):
@@ -246,34 +195,7 @@ def build():
     chair_taupe(at(2.0, -2.9, -2.4))
 
 
-def main():
-    sc = bpy.data.scenes['Lab']
-    for o in list(sc.objects): bpy.data.objects.remove(o, do_unlink=True)
-    mats = {n: material(n, *v) for n, v in MATS.items()}
-    build()
-    for name, (bm, mat) in meshes.items():
-        me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free(); me.materials.append(mats[mat])
-        sc.collection.objects.link(bpy.data.objects.new(name if name[0].isupper() else 'm_lab_' + name, me))
-    for name, loc in (('cam_start', (0, -4.2, 1.6)), ('screen_target', (-3.03, 3.0, 1.12)), ('board_target', (W - 0.034, 1.85, 1.65))):
-        e = bpy.data.objects.new(name, None); e.location = loc; e.empty_display_size = 0.2; sc.collection.objects.link(e)
-    for m in list(bpy.data.materials):
-        if m.name.startswith('lab_') and m.users == 0: bpy.data.materials.remove(m)
-    bpy.context.window.scene = sc
-    for out in ('public/rooms/lab.glb', 'assets/lab.glb'):
-        bpy.ops.export_scene.gltf(filepath=os.path.join(ROOT, out), use_active_scene=True, export_apply=True)
-    # the preview, from where the photo was taken; its camera and lamps stay out of the saved scene
-    tmp = []
-    cam = bpy.data.objects.new('preview_cam', bpy.data.cameras.new('preview_cam')); cam.data.lens = 13; cam.location = (-2.95, -4.2, 1.75)
-    cam.rotation_euler = (Vector((1.2, 3.2, 0.7)) - cam.location).to_track_quat('-Z', 'Y').to_euler(); tmp.append(cam)
-    for x in (-1.6, 1.6):
-        for y in (-3, 0, 3):
-            l = bpy.data.objects.new('preview_lamp', bpy.data.lights.new('preview_lamp', 'POINT')); l.data.energy = 220; l.data.shadow_soft_size = 0.6; l.location = (x, y, 2.85); tmp.append(l)
-    for o in tmp: sc.collection.objects.link(o)
-    sc.camera = cam; sc.render.resolution_x, sc.render.resolution_y = 1280, 960; sc.render.filepath = os.path.join(ROOT, 'assets/lab_preview.png')
-    bpy.ops.render.render(write_still=True, scene=sc.name)
-    for o in tmp: bpy.data.objects.remove(o, do_unlink=True)
-    sc.camera = None; sc.render.resolution_x, sc.render.resolution_y = 960, 600
-    bpy.ops.wm.save_mainfile()
-
-
-main()
+finish('Lab', 'lab', 'lab_', MATS, build,
+       {'cam_start': (0, -4.2, 1.6), 'screen_target': (-3.03, 3.0, 1.12), 'board_target': (W - 0.034, 1.85, 1.65)},
+       # the preview, from where the photo was taken
+       (13, (-2.95, -4.2, 1.75), (1.2, 3.2, 0.7), [(x, y, 2.85) for x in (-1.6, 1.6) for y in (-3, 0, 3)], 220, 0.6))

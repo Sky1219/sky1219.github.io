@@ -61,7 +61,7 @@ const handle = async (msg, post, pause) => {
   if (msg.type === 'score') return score(msg, post);
   if (msg.type === 'embed') return embed(msg, post);
   if (msg.type === 'run') {
-    const { id, ids, policy, budget, watch = 3 } = msg, s = new Session(model, { policy, budget, maxLen: Math.max(ids.length + 2, 8) });
+    const { id, ids, policy, budget, watch = 3, keep = [] } = msg, s = new Session(model, { policy, budget, keep, maxLen: Math.max(ids.length + 2, 8) });
     const t0 = performance.now(); let nll = 0;
     for (let t = 0; t < ids.length; t++) {
       const r = s.step(ids[t], watch);

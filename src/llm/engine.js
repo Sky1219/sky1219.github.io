@@ -1,5 +1,5 @@
 // The model every live screen shares: DistilGPT-2, downloaded once to the visitor's machine and held by a small
-// pool of workers. The KV-cache experiment (live.js) and the games (src/play/) all send their work through ask().
+// pool of workers. The games (src/play/) send their work through ask().
 import { makeTokenizer } from './tokenizer.js';
 
 export const POOL = 5;                                  // one worker per KV policy, so those five runs go side by side

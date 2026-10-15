@@ -10,3 +10,4 @@ assets/*_preview*.png
 src/visuals/
 src/games/
 src/screen.js
+__pycache__/

@@ -5,7 +5,7 @@
 import { C, text, rect, line, pane, axes, wrap, MONO } from '../screens/kit.js';
 import { Menace } from '../screens/mnk.js';
 import { engine, ask, encode } from '../llm/engine.js';
-import { pct } from './index.js';
+import { esc, pct, about, table } from './index.js';
 
 const LM = 2, BOX = 1;                                   // the marks on the board: the model's X, MENACE's O
 const MARK = { [LM]: 'X', [BOX]: 'O' };
@@ -44,11 +44,13 @@ export function mount(root, screen) {
   let alive = true, run = 0;
   const log = (s, c = C.ink) => S.logs.push([s, c]);
   root.innerHTML = `
-    <p class="g-note">The model is X and moves first. MENACE is O. MENACE starts with random moves and adjusts after every game, so it should overtake the model as more games are played. The model never learns.</p>
+    ${about(`Whether a learner that only sees outcomes overtakes a language model that only predicts text, and how fast. MENACE starts with random moves and adds or removes beads after every game. The model reads the game as text and plays the likeliest square; it never learns. The measure is who wins each window of ${WINDOW} games.`,
+              'mnk-bench runs this matchup for ten agents, from classic search to a self-play network, across board sizes and win lengths, and draws the learning curves. The curve on the screen is the one the benchmark produces.')}
+    <p class="g-note">The model is X and moves first. MENACE is O.</p>
     <div class="g-row"><button type="button" class="g-btn g-train">Play ${BATCH} games: MENACE vs the model</button></div>
     <div class="g-row"><button type="button" class="g-ghost g-lm">Play the model yourself</button><button type="button" class="g-ghost g-box">Play MENACE yourself</button></div>
     <div class="g-board" role="group" aria-label="Board">${Array.from({ length: 9 }, (_, i) => `<button type="button" data-i="${i}" disabled></button>`).join('')}</div>
-    <p class="g-result" aria-live="polite"></p>`;
+    <div class="g-result" aria-live="polite"></div>`;
   const cells = [...root.querySelectorAll('.g-board button')], result = root.querySelector('.g-result'), train = root.querySelector('.g-train');
   const render = () => {
     cells.forEach((b, i) => {
@@ -57,7 +59,9 @@ export function mount(root, screen) {
       b.setAttribute('aria-label', `Square ${i + 1}, ${v ? MARK[v] : 'empty'}`);
     });
     train.disabled = S.mode === 'train';
-    result.textContent = S.note;
+    const H = G.hist, wins = [];
+    for (let e = WINDOW; e <= H.length; e += WINDOW) { const w = H.slice(e - WINDOW, e); wins.push([`${e - WINDOW + 1}–${e}`, String(share(w, 'win')), String(share(w, 'loss')), String(share(w, 'draw'))]); }
+    result.innerHTML = (wins.length ? table(['games', 'MENACE', 'model', 'draws'], wins.slice(-4), Math.min(3, wins.length - 1)) : '') + `<p class="g-verdict">${esc(S.note)}</p>`;
   };
   const record = () => {
     const h = G.hist, n = h.length; if (!n) return '';

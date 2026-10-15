@@ -27,7 +27,7 @@ void main(){
     vec2 cell = floor(g), f = fract(g);
     float win = step(0.18, f.x) * step(f.x, 0.82) * step(0.3, f.y) * step(f.y, 0.82);
     float r = h21(cell + uSeed * 17.13), r2 = h21(cell.yx + uSeed * 3.7 + 11.0);
-    float lit = step(1.0 - uLit, r) * step(0.5, vW.y);
+    float lit = step(1.0 - uLit, r) * step(0.5, vW.y) * step(0.07, fract(h21(cell * 0.37 + 5.0) + uTime * 0.012));   // now and then one goes dark
     vec3 wc = r2 < 0.75 ? vec3(1.0, 0.78, 0.5) : vec3(0.75, 0.88, 1.0);
     vec3 base = vec3(0.008, 0.012, 0.011) + vec3(0.01, 0.016, 0.015) * max(dot(n, normalize(vec3(0.4, 0.5, 0.7))), 0.0);
     float aa = clamp(1.6 - length(fwidth(g)) * 2.2, 0.0, 1.0);
@@ -108,6 +108,52 @@ export async function buildCampus(base = 'data/') {
   }
   scene.add(new THREE.HemisphereLight(0x9fc6b8, 0x0a1210, 0.6));
 
+  // stars, some of them twinkling
+  {
+    const N = 1600, pos = new Float32Array(N * 3), ph = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      const a = Math.random() * 6.283, e = Math.asin(Math.random()) * 0.95 + 0.03, r = 2600;
+      pos.set([r * Math.cos(e) * Math.cos(a), r * Math.sin(e), r * Math.cos(e) * Math.sin(a)], i * 3); ph[i] = Math.random() * 6.283;
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('phase', new THREE.BufferAttribute(ph, 1));
+    const stars = new THREE.Points(g, new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { uTime: U.time },
+      vertexShader: 'attribute float phase; uniform float uTime; varying float vA; void main(){ vA = 0.5 + 0.5 * sin(uTime * (0.5 + fract(phase * 7.0)) + phase); gl_PointSize = 1.3 + 1.8 * fract(phase * 13.0); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: 'varying float vA; void main(){ vec2 d = gl_PointCoord - 0.5; if (dot(d, d) > 0.25) discard; gl_FragColor = vec4(vec3(0.75, 0.85, 1.0), 0.25 + 0.6 * vA); }' }));
+    stars.frustumCulled = false; scene.add(stars);
+  }
+  // traffic: headlights one way, taillights the other, running along the main roads
+  const lanes = site.roads.major.map((r) => {
+    const pts = [], cum = [0]; for (let i = 0; i < r.length; i += 2) pts.push(new THREE.Vector2(r[i], r[i + 1]));
+    for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + pts[i].distanceTo(pts[i - 1]));
+    return { pts, cum, len: cum[cum.length - 1] };
+  }).filter((l) => l.len > 80);
+  const NC = 110, cars = [], cpos = new Float32Array(NC * 3), tone = new Float32Array(NC);
+  for (let i = 0; i < NC; i++) { const l = lanes[Math.floor(Math.random() * lanes.length)], dir = Math.random() < 0.5 ? 1 : -1; cars.push({ l, dir, s: Math.random() * l.len, v: 8 + Math.random() * 8, i: 0 }); tone[i] = dir; }
+  const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.BufferAttribute(cpos, 3)); cg.setAttribute('tone', new THREE.BufferAttribute(tone, 1));
+  const traffic = new THREE.Points(cg, new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { uReveal: U.reveal, uCenter: U.center },
+    vertexShader: 'attribute float tone; varying vec3 vW; varying float vT; void main(){ vec4 wp = modelMatrix * vec4(position, 1.0); vW = wp.xyz; vT = tone; gl_PointSize = 3.0; gl_Position = projectionMatrix * viewMatrix * wp; }',
+    fragmentShader: `varying vec3 vW; varying float vT; ${SCAN}
+      void main(){ scanFront(vW); vec2 d = gl_PointCoord - 0.5; if (dot(d, d) > 0.25) discard; vec3 c = vT > 0.0 ? vec3(1.0, 0.9, 0.7) : vec3(1.0, 0.22, 0.12); gl_FragColor = vec4(c * 1.5, 0.9); }` }));
+  traffic.frustumCulled = false; scene.add(traffic);
+  // a car keeps the index of the road segment it's on (c.i) and steps it as it moves, writing straight into cpos
+  const place = (c, i) => {
+    const { cum, pts } = c.l;
+    while (c.i < cum.length - 2 && cum[c.i + 1] < c.s) c.i++;
+    while (c.i > 0 && cum[c.i] > c.s) c.i--;
+    const a = pts[c.i], b = pts[c.i + 1], k = (c.s - cum[c.i]) / Math.max(1e-6, cum[c.i + 1] - cum[c.i]);
+    cpos[i * 3] = a.x + (b.x - a.x) * k; cpos[i * 3 + 1] = 0.9; cpos[i * 3 + 2] = a.y + (b.y - a.y) * k;
+  };
+  let lastT = 0;
+  const drive = (t) => {
+    const dt = Math.min(0.1, Math.max(0, t - lastT)); lastT = t;
+    cars.forEach((c, i) => {
+      c.s += c.dir * c.v * dt;
+      if (c.s < 0 || c.s > c.l.len) { c.dir *= -1; tone[i] = c.dir; c.s = Math.max(0, Math.min(c.l.len, c.s)); cg.attributes.tone.needsUpdate = true; }
+      place(c, i);
+    });
+    cg.attributes.position.needsUpdate = true;
+  };
+
   // where each building is, and a highlight that can be put on any of them
   const byCode = new Map();
   for (const f of site.footprints) if (f.code) {
@@ -151,7 +197,7 @@ export async function buildCampus(base = 'data/') {
     return b;
   }
   return {
-    scene, byCode, highlight,
+    scene, byCode, highlight, origin: site.origin,
     set glowOn(v) { shellMat.uniforms.uOn.value = v; },
     // scan campus in around a point: nothing at first, then a ring running outward that leaves the buildings behind it
     hold(center) { U.center.value.set(center.x, center.z); U.reveal.value = 0; },
@@ -161,6 +207,6 @@ export async function buildCampus(base = 'data/') {
       const step = () => { const k = Math.min(1, (performance.now() - t0) / (secs * 1000)); U.reveal.value = k < 1 ? 1400 * k * k * (3 - 2 * k) + 1 : 1e6; if (k < 1) requestAnimationFrame(step); };
       step();
     },
-    update(t) { U.time.value = t; },
+    update(t) { U.time.value = t; drive(t); },
   };
 }

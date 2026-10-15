@@ -1,9 +1,10 @@
-// The three rooms, modelled in Blender (public/rooms/*.glb; the .blend is in assets/). Each GLB carries empties:
+// The four rooms, modelled in Blender (public/rooms/*.glb; the .blend is in assets/). Each GLB carries empties:
 // cam_start (where we walk in) and screen_target (the centre of the screen the explanation plays on). Here each
 // room gets its lighting, its people made of light, me (the orange one), and a live canvas over its screen.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { makeCrowd, makeAvatar, makePerson } from './people.js';
+import { lerp } from '../screens/kit.js';
 import ATRIUM_SEATS from './atrium-seats.json';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -15,7 +16,7 @@ export const ROOMS = {
     file: 'rooms/lab.glb', screen: { w: 0.6, h: 0.355, facing: V(1, 0, 0) }, look: V(0, 1.2, -4.5),
     via: (S) => [V(-0.3, 1.6, 0.6), V(-0.9, 1.5, -1.6)],
     // stepped back: the computer, and me beside it
-    final: { at: (S) => ({ pos: S.clone().add(V(4.3, 0.85, 0.75)), look: S.clone().add(V(0.6, 0.2, -0.3)) }), dist: 1.42, up: 0.24, shift: 0.42 },
+    final: { at: (S) => ({ pos: S.clone().add(V(4.3, 0.85, 0.75)), look: S.clone().add(V(0.6, 0.2, -0.3)) }), dist: 1.42, up: 0.24 }, orbit: 0.55,
     people: () => [],
     board: { w: 2.0, h: 1.1, facing: V(-1, 0, 0) },       // the whiteboard on the right wall (board_target in the GLB)
     // the two who were in when the photo the room is modelled on was taken, modelled after it: one writing code
@@ -25,6 +26,8 @@ export const ROOMS = {
       { file: 'rooms/labmates.glb', prefix: 'p2_', pos: V(2.52, 0, -1.45), yaw: Math.PI / 2, kind: 'write', seed: 0.7 },
     ],
     me: { pos: V(-2.15, 0, -3.72), yaw: 0.75, turn: -1, kind: 'present' },        // up from his chair, showing you his screen
+    motes: { x: [-3, 3], y: [0.3, 2.8], z: [-4.3, 4.3] },
+    pulse: [['m_lab_screen_code', (t) => 0.95 + 0.08 * Math.sin(t * 2.1) + 0.04 * Math.sin(t * 17)]],
     light(scene) {
       scene.background = new THREE.Color(0x0c0f0c);
       scene.add(new THREE.HemisphereLight(0xfff1dc, 0x221f1c, 0.75));
@@ -36,7 +39,7 @@ export const ROOMS = {
   hall: {
     file: 'rooms/hall.glb', screen: { w: 8.0, h: 4.5, facing: V(0, 0, 1) }, look: V(0, 3.4, -10),
     via: (S) => [V(2.5, 5.2, 6.0), V(1.0, 4.6, 3.5)],
-    final: { dist: 11.4, up: 0.7, shift: 2.6 },
+    final: { dist: 11.4, up: 0.7, shift: 2.6 }, orbit: 0.8,
     people() {                                             // about half the seats taken, everyone facing the screen
       const out = [];
       for (let i = 0; i < 11; i++) for (const [x0, x1] of [[-6.6, -1.1], [1.1, 6.6]]) {
@@ -57,7 +60,7 @@ export const ROOMS = {
   ecsw: {
     file: 'rooms/atrium.glb', screen: { w: 12.8, h: 7.2, facing: V(0, 0, 1) }, look: V(0, 5, -18),
     via: (S) => [V(-5, 7.5, 6), V(-2, 6.4, 3.0)],
-    final: { dist: 19.5, up: 0.4, shift: 6.2 },
+    final: { dist: 19.5, up: 0.4, shift: 6.2 }, orbit: 0.9,
     hide: /^m_atr_(shirt|skin)/,                          // the placeholder people modelled in Blender
     people: () => ATRIUM_SEATS.map(([x, z, side]) => ({ pos: V(x, 0, z), yaw: side > 0 ? 0 : Math.PI, kind: 'type' }))
       .concat([[-7, -16], [-3.5, -15.5], [8, 2], [-12, -9], [12, -4]].map(([x, z]) => ({ pos: V(x, 0, z), yaw: rand() * 6.28, kind: 'stand' }))),
@@ -67,6 +70,27 @@ export const ROOMS = {
       scene.fog = new THREE.Fog(0x07080c, 30, 70);
       scene.add(new THREE.HemisphereLight(0xc9c2ff, 0x101018, 0.3));
       for (const [x, z, c] of [[-10, 5, 0x8a4dff], [10, 5, 0x2ee6ff], [0, -10, 0xff7a2e], [0, 10, 0xffe7c9], [-10, -8, 0xffd9b0], [10, -8, 0xffd9b0]]) { const p = new THREE.PointLight(c, 14, 28, 1.6); p.position.set(x, 9, z); scene.add(p); }
+    },
+  },
+  // my bedroom in Canyon Creek Heights South (tools/build_apartment.py): the desk runs along the right wall,
+  // across from the bed, with the monitor at its far end (facing -x) and me at the laptop nearer the door
+  home: {
+    file: 'rooms/apartment.glb', screen: { w: 0.6, h: 0.355, facing: V(-1, 0, 0) }, look: V(1.3, 1.0, -1.2), exposure: 0.62,
+    via: (S) => [V(-1.0, 1.5, 0.9), V(-1.05, 1.58, -0.1)],      // in along the bed, looking at the desk
+    // stepped back over the bed by the window: the screen on the left, me at the laptop on the right
+    final: { at: (S) => ({ pos: S.clone().add(V(-2.3, 0.5, 0.35)), look: S.clone().add(V(0.2, -0.3, 0.4)) }), dist: 1.5, up: 0.25 }, orbit: 0.3,
+    people: () => [],
+    me: { pos: V(0.95, 0, -0.1), yaw: Math.PI / 2, turn: 1, kind: 'type' },
+    motes: { x: [-1.6, 1.6], y: [0.3, 2.5], z: [-1.8, 1.8] },
+    // the tower's strip pulses and the bedside lamp flickers a little
+    pulse: [['m_apt_rgb', (t) => 2.4 + 1.6 * Math.sin(t * 2.4)], ['m_apt_lamp', (t) => 1.1 + 0.08 * Math.sin(t * 9)]],
+    light(scene) {
+      scene.background = new THREE.Color(0x0a0908);
+      scene.add(new THREE.HemisphereLight(0xffe2c4, 0x1a1410, 0.18));
+      const lamp = new THREE.PointLight(0xffb070, 1.0, 4, 1.8); lamp.position.set(1.45, 1.2, -1.45); scene.add(lamp);       // the desk lamp
+      const glow = new THREE.PointLight(0x8fc8ff, 0.5, 3, 1.8); glow.position.set(1.1, 1.15, -1.1); scene.add(glow);        // the monitor
+      const ceiling = new THREE.PointLight(0xfff0dd, 0.5, 6, 1.8); ceiling.position.set(0, 2.45, 0); scene.add(ceiling);
+      const moon = new THREE.DirectionalLight(0x6a86c8, 0.2); moon.position.set(-0.5, 2.0, -3); scene.add(moon);            // through the blinds
     },
   },
 };
@@ -95,6 +119,24 @@ function boardTexture(w, h) {
   return tex;
 }
 
+// dust: a few hundred points drifting up through the room, catching the light
+function makeMotes({ x, y, z }, n = 220) {
+  const pos = new Float32Array(n * 3), seeds = Array.from({ length: n }, () => [rand(), rand(), rand(), rand()]);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const points = new THREE.Points(g, new THREE.PointsMaterial({ color: new THREE.Color(1.4, 1.15, 0.85), size: 0.014, transparent: true, opacity: 0.5, depthWrite: false, toneMapped: false }));
+  points.frustumCulled = false;
+  const update = (t) => {
+    seeds.forEach(([a, b, c, d], i) => {
+      pos[i * 3] = lerp(x[0], x[1], a) + Math.sin(t * 0.13 + d * 6.28) * 0.2;
+      pos[i * 3 + 1] = lerp(y[0], y[1], (b + t * 0.006 * (0.5 + d)) % 1);
+      pos[i * 3 + 2] = lerp(z[0], z[1], c) + Math.cos(t * 0.11 + a * 6.28) * 0.2;
+    });
+    g.attributes.position.needsUpdate = true;
+  };
+  update(0);
+  return { points, update };
+}
+
 const cache = new Map();
 export function loadRoom(id) {
   if (!cache.has(id)) {
@@ -121,9 +163,12 @@ export function loadRoom(id) {
         scene.add(bp);
       }
       const crowd = makeCrowd(R.people()); scene.add(crowd.group);
+      // dust drifting in the light, and the things in the room that pulse (named meshes whose emission follows a curve)
+      const motes = R.motes ? makeMotes(R.motes) : null; if (motes) scene.add(motes.points);
+      const pulse = (R.pulse || []).map(([name, fn]) => { let o = null; g.scene.traverse((n) => { if (!o && n.isMesh && n.name.startsWith(name)) o = n; }); return o && [o.material, fn]; }).filter(Boolean);
       const me = await makeAvatar(R.me.pos, R.me.yaw, R.me.turn, R.me.kind); scene.add(me.group);
       const figures = await Promise.all((R.figures || []).map(makePerson)); for (const f of figures) scene.add(f.group);
-      return { scene, start, S, plane, canvas: cv, tex, room: R, update: (t) => { crowd.update(t); me.update(t); for (const f of figures) f.update(t); } };
+      return { scene, start, S, plane, canvas: cv, tex, room: R, update: (t) => { crowd.update(t); me.update(t); for (const f of figures) f.update(t); if (motes) motes.update(t); for (const [m, fn] of pulse) m.emissiveIntensity = fn(t); } };
     }));
   }
   return cache.get(id);

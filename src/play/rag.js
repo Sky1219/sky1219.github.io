@@ -4,7 +4,7 @@
 // two only look as if they might.
 import { C, SANS, MONO, text, rect, arrow, wrap, fit } from '../screens/kit.js';
 import { engine, ask, encode } from '../llm/engine.js';
-import { esc, pct, piece } from './index.js';
+import { esc, pct, piece, about, table } from './index.js';
 
 export const QUESTION = 'In which city is HackUTD held?';
 export const ASK = `Question: ${QUESTION}\nAnswer: HackUTD is held in the city of`;
@@ -35,9 +35,11 @@ export function mount(root, screen) {
   screen.play = S;
   let alive = true;
   root.innerHTML = `
+    ${about('Whether the model\'s answer follows the document the retriever hands it. One of the five says where HackUTD is held, two name other places, and two are about HackUTD but say nothing about where. The measure is the probability of the right city as the next token, and what the model goes on to say.',
+              'This is the first workshop: retrieval-augmented generation. A model answers from what is in its prompt, so the retriever decides whether it is right, and a good retriever matters more than a bigger model here.')}
     <p class="g-note">Asked <b>“${esc(QUESTION)}”</b>, the model on its own answers <span class="g-alone">…</span> Retrieve one document to put in front of the question.</p>
     <div class="g-list" role="radiogroup" aria-label="Documents">${DOCS.map(([name, body], i) => `<button type="button" class="g-item" role="radio" aria-checked="false" data-i="${i}"><b>${esc(name)}</b> ${esc(body)}</button>`).join('')}</div>
-    <p class="g-result" aria-live="polite"></p>`;
+    <div class="g-result" aria-live="polite"></div>`;
   const items = [...root.querySelectorAll('.g-item')], alone = root.querySelector('.g-alone'), result = root.querySelector('.g-result');
   measure(-1).then((r) => { if (!alive) return; S.res[-1] = r; alone.textContent = `“${r.says}”.`; });
   items.forEach((b, i) => { b.onclick = async () => {
@@ -46,10 +48,13 @@ export function mount(root, screen) {
     const [base, r] = await Promise.all([measure(-1), measure(i)]);
     if (!alive || S.sel !== i) return;
     S.res[i] = r;
-    result.textContent = `With ${DOCS[i][0]} in the prompt, the model answers “${r.says}”. `
-      + (r.right ? `That document has the answer, and the model reads it off (“${ANSWER.trim()}” went from ${pct(base.p)} to ${pct(r.p)} as the next token).`
-        : r.says !== base.says ? 'The answer changed to a different wrong city, because the model repeats whatever place the document mentions.'
-          : 'The answer hasn’t changed, because that document doesn’t say where HackUTD is held.');
+    const tried = [-1, ...DOCS.map((_, j) => j).filter((j) => S.res[j])];
+    const rows = tried.map((j) => { const q = S.res[j]; return [j < 0 ? 'nothing' : esc(DOCS[j][0]), q.right ? `<span class="g-ok">${esc(q.says)}</span>` : esc(q.says), pct(q.p)]; });
+    result.innerHTML = table(['retrieved', 'answers', `P(${esc(ANSWER.trim())})`], rows, tried.indexOf(i))
+      + `<p class="g-verdict">With ${esc(DOCS[i][0])} in the prompt, the model answers “${esc(r.says)}”. `
+      + (r.right ? `That document has the answer, and the model reads it off: “${esc(ANSWER.trim())}” went from ${pct(base.p)} to ${pct(r.p)} as the next token.`
+        : r.says !== base.says ? 'The answer changed to a different wrong city, because the model repeats whatever place the document mentions. That is what grounding on the wrong document looks like.'
+          : 'The answer has not changed, because that document does not say where HackUTD is held.') + '</p>';
   }; });
   return () => { alive = false; };
 }

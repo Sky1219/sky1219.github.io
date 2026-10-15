@@ -1,7 +1,7 @@
 // Builds the site into dist/: the page (with the campus plan inlined), the styles, the JS (three.js and the
 // visuals are split out and only load when a tour opens), and the data and room models from public/.
 import { build, context } from 'esbuild';
-import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync, readdirSync, chmodSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync, readdirSync, chmodSync, statSync, watchFile } from 'node:fs';
 import { join } from 'node:path';
 
 const watch = process.argv.includes('--watch');
@@ -11,7 +11,7 @@ const page = () => {
   const html = readFileSync('src/index.html', 'utf8').replace('{{PLAN}}', readFileSync('src/campus-plan.svg', 'utf8')
     // the buildings twice: outlines that draw themselves in, and a fill of lit windows
     .replace(/<path class="plan-buildings" d="([^"]*)"\/>/, '<path class="plan-lit" d="$1"/><path class="plan-buildings" pathLength="1" d="$1"/>')
-    .replace('<path class="plan-hot"', '<path class="plan-hot" pathLength="1"'));
+    .replace(/<path class="plan-hot"/g, '<path class="plan-hot" pathLength="1"'));
   writeFileSync('dist/index.html', html);
   cpSync('src/styles.css', 'dist/styles.css');
 };
@@ -29,6 +29,7 @@ if (watch) {
   const ctx = await context({ ...opts, plugins: [{ name: 'page', setup(b) { b.onEnd(page); } }] });
   await (await context(workerOpts)).watch();
   await ctx.watch();
+  for (const f of ['src/index.html', 'src/styles.css', 'src/campus-plan.svg']) watchFile(f, { interval: 500 }, page);   // the page and styles aren't in the JS graph
   await ctx.serve({ servedir: 'dist', port: 5173 });
   console.log('http://localhost:5173');
 } else {

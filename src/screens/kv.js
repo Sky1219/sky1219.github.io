@@ -1,12 +1,8 @@
-// KV-cache eviction as sub-cache runs it: tokens are decoded one at a time, each adds a key/value entry, and with
+// KV-cache eviction as SubCache runs it: tokens are decoded one at a time, each adds a key/value entry, and with
 // a fixed budget something has to be evicted. The heatmap is the attention each new query pays to earlier keys;
 // evicted keys go dark. Attention here is simulated (kvsim.js), not a real model, and the table says so.
 import { Screen, C, text, rect, line, pane, ease, clamp } from './kit.js';
 import { TEXT, ATT, POLICIES, simulate, average, topicOf } from './kvsim.js';
-import { drawLive } from './kvlive.js';
-
-// live mode: which policy each step features (step 2 cycles through the baselines)
-const FEATURE = [['full'], ['stream'], ['stream', 'h2o', 'snap'], ['fl'], ['fl']];
 
 const B = 10;
 const RUNS = Object.fromEntries(POLICIES.map((p) => [p.id, simulate(p.id, B)]));
@@ -15,25 +11,6 @@ const PER = 0.42;                          // seconds per decoded token on scree
 
 export class KvScreen extends Screen {
   constructor(w, h) { super(w, h, [5, 5, 15, 8, 9]); this.goto(0); }
-  // switch to the real model: L is src/llm/live.js's state
-  attachLive(L) { this.live = L; this.featured = 'fl'; this.cyc = 0; }
-  get isLive() { return !!this.live && !['idle', 'ready'].includes(this.live.phase); }
-  goto(i) {
-    if (!this.isLive) return super.goto(i);
-    this.step = ((i % 5) + 5) % 5; this.st = 0; this.manual = true;
-    const f = FEATURE[this.step]; this.featured = f[(this.cyc = this.step === 2 ? (this.cyc + 1) % 3 : 0)];
-  }
-  frame(ctx, dt) {
-    this.hold = this.isLive;
-    if (this.live && this.live.phase !== this.lastPhase) { if (this.live.phase === 'done' && !this.manual) this.featured = 'fl'; if (this.live.phase === 'running') this.manual = false; this.lastPhase = this.live.phase; }
-    if (this.isLive && !this.manual && this.live.phase === 'running') {
-      // while it runs, show each policy in turn
-      this.featSt = (this.featSt || 0) + dt;
-      if (this.featSt > 4) { this.featSt = 0; const i = ['full', 'stream', 'h2o', 'snap', 'fl'].indexOf(this.featured); this.featured = ['full', 'stream', 'h2o', 'snap', 'fl'][(i + 1) % 5]; }
-    }
-    if (this.isLive && !this.manual) this.step = this.live.phase === 'done' ? 4 : this.live.phase !== 'running' ? 0 : { full: 0, stream: 2, h2o: 2, snap: 2, fl: 3 }[this.featured];
-    super.frame(ctx, dt);
-  }
   onStep(s) {
     this.lines = [];
     const p = (x, c) => this.print(x, c);
@@ -54,7 +31,6 @@ export class KvScreen extends Screen {
     return { ...run[i], pol, i, ev: i > 0 ? run[i - 1].evicted : null };
   }
   update() {
-    if (this.isLive) return;
     const S = this.state;
     if (S.pol && S.i !== this.lastI && this.step >= 1 && this.step <= 3) {
       this.lastI = S.i;
@@ -62,10 +38,9 @@ export class KvScreen extends Screen {
     }
   }
   draw(ctx) {
-    if (this.isLive) return drawLive(this, ctx, this.live);
     const { w, h } = this, s = this.step, S = this.state, t = S.t, kept = S.kept;
     const polName = S.pol ? POLICIES.find((p) => p.id === S.pol).name : 'filling';
-    this.chrome(ctx, 'akash@caraml-ws3: ~/sub-cache', 'CARAML Lab');
+    this.chrome(ctx, 'akash@caraml-ws3: ~/SubCache', 'CARAML Lab');
     // attention heatmap: one row per query, one column per key
     const hb = pane(ctx, 8, 38, 610, 356, 'attention  (query x key)', { accent: C.blue, right: `policy: ${polName}` });
     const rows = 22, q0 = Math.max(1, t - rows + 1), cw = hb.w / TEXT.length, rh = (hb.h - 40) / rows;

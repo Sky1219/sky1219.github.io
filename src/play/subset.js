@@ -4,7 +4,7 @@
 // and all three are measured. Neither of them sees the passage.
 import { C, text, rect, pane, clamp, MONO } from '../screens/kit.js';
 import { engine, ask, encode, EOT } from '../llm/engine.js';
-import { esc } from './index.js';
+import { esc, about, table } from './index.js';
 
 export const K = 4;
 // the town's four subjects, some written about far more than others (so a random draw keeps landing on the same few)
@@ -61,6 +61,8 @@ const NAME = { you: 'Your four', fl: 'Facility location', rnd: 'Random draw', no
 const COL = { you: C.orange, fl: C.cyan, rnd: C.purple, none: C.dim };
 const SUBJECT = ['lighthouse', 'bakery', 'ferry', 'fox'];
 const subjects = (pick) => new Set(pick.map((i) => POOL[i].topic)).size;
+const missed = (pick) => SUBJECT.filter((_, t) => !pick.some((i) => POOL[i].topic === t));
+const list = (a) => (a.length ? a.join(', ').replace(/, ([^,]*)$/, ' and $1') : 'nothing');
 
 // facility location's pick doesn't depend on the visitor, so it's worked out once; so is any prompt already measured
 let shared = null;
@@ -90,11 +92,13 @@ export function mount(root, screen) {
   let alive = true, busy = false;
   const log = (s, c = C.ink) => S.logs.push([s, c]);
   root.innerHTML = `
-    <p class="g-note">Pick the ${K} sentences that best prepare the model for a passage about this town. You don't get to read the passage first. The model predicts the passage better after reading related sentences. The score is perplexity, which measures how surprised the model is by the passage, so lower is better. Your ${K} are compared with ${K} chosen at random and ${K} chosen by facility location, a method that picks sentences covering the whole list.</p>
+    ${about(`Whether ${K} sentences chosen for coverage prepare the model for a passage it hasn't seen better than ${K} chosen at random. The passage mentions all four subjects in town, but the pool is lopsided: nine sentences about the lighthouse, three about the fox. The score is perplexity, how surprised the model is by the passage, so lower is better.`,
+              'Facility location is the objective my lab uses to choose training data: it rewards a subset that covers everything, so the rare subjects are not left out. The same idea picked which positions to label in mnk-bench.')}
+    <p class="g-note">Pick the ${K} sentences that best prepare the model for a passage about this town. You don't get to read the passage first.</p>
     <div class="g-list g-pool" role="group" aria-label="Sentences">${POOL.map((p, i) => `<button type="button" class="g-item" aria-pressed="false" data-i="${i}">${esc(p.s)}</button>`).join('')}</div>
-    <div class="g-row"><button type="button" class="g-btn g-score" disabled>Score my ${K}</button><button type="button" class="g-ghost g-clear">Clear</button><span class="g-count"></span></div>
-    <p class="g-result" aria-live="polite"></p>`;
-  const items = [...root.querySelectorAll('.g-item')], score = root.querySelector('.g-score'), count = root.querySelector('.g-count'), result = root.querySelector('.g-result');
+    <div class="g-row"><button type="button" class="g-btn g-go" disabled>Score my ${K}</button><button type="button" class="g-ghost g-clear">Clear</button><span class="g-count"></span></div>
+    <div class="g-result" aria-live="polite"></div>`;
+  const items = [...root.querySelectorAll('.g-item')], score = root.querySelector('.g-go'), count = root.querySelector('.g-count'), result = root.querySelector('.g-result');
   const render = () => {
     items.forEach((b, i) => b.setAttribute('aria-pressed', S.mine.includes(i)));
     count.textContent = `${S.mine.length} of ${K} picked`;
@@ -118,9 +122,10 @@ export function mount(root, screen) {
     }));
     if (!alive) return;
     const { you, fl: F, rnd, none } = S.runs;
-    result.textContent = `Perplexity on the passage (lower is better) was ${you.ppl.toFixed(1)} for your four, ${F.ppl.toFixed(1)} for facility location, ${rnd.ppl.toFixed(1)} for a random four and ${none.ppl.toFixed(1)} with no prompt. `
-      + `The passage touches all ${SUBJECT.length} subjects in town. You covered ${subjects(you.pick)}, facility location ${subjects(F.pick)} and the random draw ${subjects(rnd.pick)}. `
-      + (you.ppl < F.ppl ? 'You beat facility location, which never saw the passage.' : 'Facility location wins this one. It never saw the passage and only tries to cover the pool.');
+    const order = [['you', you], ['fl', F], ['rnd', rnd], ['none', none]], best = order.reduce((b, [, r], i) => (r.ppl < order[b][1].ppl ? i : b), 0);
+    result.innerHTML = table(['', 'subjects', 'perplexity'], order.map(([who, r]) => [NAME[who], who === 'none' ? '–' : `${subjects(r.pick)} of ${SUBJECT.length}`, r.ppl.toFixed(1)]), best)
+      + `<p class="g-verdict">Your four missed ${list(missed(you.pick))}; the random draw missed ${list(missed(rnd.pick))}; facility location missed ${list(missed(F.pick))}. The red tokens on the screen are where the model was most surprised. `
+      + (you.ppl < F.ppl ? 'You beat facility location, which never saw the passage.' : 'Facility location wins this one without ever seeing the passage: covering the pool was enough.') + '</p>';
     busy = false; render();
   };
   log('$ python -m subsel.embed --model distilgpt2 --pool town.txt', C.green);

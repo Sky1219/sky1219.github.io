@@ -14,6 +14,7 @@ import { PLACES } from '../content.js';
 export { makeScreen };
 const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 const CAMPUS_HOME = new THREE.Vector3(-300, 0, -40);
+const UP = new THREE.Vector3(0, 1, 0), ORBIT = new THREE.Vector3(), AXIS = new THREE.Vector3();   // scratch for the orbit, every frame
 
 let R = null;
 let campusP = null;
@@ -66,9 +67,12 @@ export function runTour(tour, ui) {
       fn(t, dt);
       if (room) room.update(t);
       if (screen && room) { screen.frame(sctx, dt); room.tex.needsUpdate = true; }
-      if (sway) {                                          // once settled, the view drifts a little with the pointer
+      if (sway) {                                          // once settled, the view drifts a little with the pointer, and a drag walks round
         sway.cur.lerp(sway.want, Math.min(1, dt * 3));
-        camera.position.copy(sway.pos).addScaledVector(sway.right, sway.cur.x).addScaledVector(sway.up, sway.cur.y); camera.lookAt(sway.look);
+        orbit.yaw += (orbit.wantYaw - orbit.yaw) * Math.min(1, dt * 8); orbit.pitch += (orbit.wantPitch - orbit.pitch) * Math.min(1, dt * 8);
+        const v = ORBIT.copy(sway.off).applyAxisAngle(UP, orbit.yaw); v.applyAxisAngle(AXIS.crossVectors(UP, v).normalize(), orbit.pitch);
+        camera.position.copy(sway.look).add(v).addScaledVector(sway.right, sway.cur.x).addScaledVector(UP, sway.cur.y);
+        camera.position.y = Math.max(0.3, camera.position.y); camera.lookAt(sway.look);
       }
       composer.render();
     };
@@ -88,13 +92,25 @@ export function runTour(tour, ui) {
     step();
   });
 
+  // the pointer: a little drift as the mouse moves, and in the wide view a drag orbits the room
+  const orbit = { yaw: 0, pitch: 0, wantYaw: 0, wantPitch: 0 };
+  let drag = null;
   const move = (e) => {
+    if (drag) {                                        // how far round depends on the room: a bedroom has walls close by
+      const lim = (room && room.room.orbit) || 0.6;
+      orbit.wantYaw = Math.max(-lim, Math.min(lim, drag.yaw - (e.clientX - drag.x) * 0.0025)); orbit.wantPitch = Math.max(-0.25, Math.min(0.45, drag.pitch - (e.clientY - drag.y) * 0.002)); return;
+    }
     if (sway && e.pointerType === 'mouse') { const r = ui.canvas.getBoundingClientRect(); sway.want.set(((e.clientX - r.left) / r.width - 0.5) * sway.amp, -((e.clientY - r.top) / r.height - 0.5) * sway.amp * 0.6); }
   };
+  const down = (e) => { if (!sway || close || e.button !== 0) return; drag = { x: e.clientX, y: e.clientY, yaw: orbit.wantYaw, pitch: orbit.wantPitch }; ui.canvas.setPointerCapture(e.pointerId); ui.canvas.style.cursor = 'grabbing'; };
+  const lift = () => { if (!drag) return; drag = null; ui.canvas.style.cursor = close ? '' : 'grab'; };
   const settle = (v, amp) => {
     const f = new THREE.Vector3().subVectors(v.look, v.pos).normalize();
-    sway = { pos: v.pos.clone(), look: v.look.clone(), right: new THREE.Vector3().crossVectors(f, new THREE.Vector3(0, 1, 0)).normalize(), up: new THREE.Vector3(0, 1, 0),
+    sway = { look: v.look.clone(), off: new THREE.Vector3().subVectors(v.pos, v.look), right: new THREE.Vector3().crossVectors(f, UP).normalize(),
       cur: new THREE.Vector2(), want: new THREE.Vector2(), amp: v.pos.distanceTo(v.look) * amp };
+    orbit.yaw = orbit.pitch = orbit.wantYaw = orbit.wantPitch = 0;
+    ui.canvas.style.cursor = close ? '' : 'grab';
+    ui.hud?.(close ? '' : 'DRAG TO LOOK ROUND THE ROOM');
   };
   // between the wide view of the room and the screen up close
   const view = async (on) => {
@@ -105,7 +121,8 @@ export function runTour(tour, ui) {
     await fly([from.pos, to.pos], [from.look, to.look], 1.1);
     settle(to, on ? 0.02 : 0.06);
   };
-  ui.canvas.addEventListener('pointermove', move);
+  ui.canvas.addEventListener('pointermove', move); ui.canvas.addEventListener('pointerdown', down);
+  ui.canvas.addEventListener('pointerup', lift); ui.canvas.addEventListener('pointercancel', lift);
 
   (async () => {
     ui.status('Loading campus');
@@ -116,13 +133,20 @@ export function runTour(tour, ui) {
     ui.onScreen(screen);
     // ---- out of the tunnel, over campus ----
     const b = campus.highlight(place.building);
-    campus.glowOn = 0; pass.scene = campus.scene;
+    campus.glowOn = 0; pass.scene = campus.scene; R.renderer.toneMappingExposure = 1;
     const C = b.center, H = Math.max(10, b.height);
     const off = new THREE.Vector3(0.55, 0, 0.83).normalize();
     const overview = CAMPUS_HOME.clone().add(new THREE.Vector3(260, 520, 640)), near = C.clone().addScaledVector(off, 150).setY(80);
     camera.position.copy(overview); R.look.copy(CAMPUS_HOME); camera.lookAt(R.look);
     campus.hold(C);
-    frame((t) => campus.update(t));
+    const O = campus.origin, KX = 111320 * Math.cos((32.9872 * Math.PI) / 180);
+    let shown = '';
+    const hud = () => {                                   // the readout along the bottom: where we are over campus (written only when it changes)
+      const p = camera.position, d = Math.hypot(p.x - C.x, p.z - C.z), brg = ((Math.atan2(C.x - p.x, -(C.z - p.z)) * 180) / Math.PI + 360) % 360;
+      const s = `${(O[1] - p.z / 110540).toFixed(4)} N  ${(-(O[0] + p.x / KX)).toFixed(4)} W   ALT ${Math.max(0, p.y).toFixed(0).padStart(3)} m   ${place.building} ${d.toFixed(0).padStart(4)} m  BRG ${brg.toFixed(0).padStart(3)}°`;
+      if (s !== shown) ui.hud?.((shown = s));
+    };
+    frame((t) => { campus.update(t); hud(); });
     ui.status('');
     await ui.reveal();
     if (!alive) return;
@@ -141,8 +165,8 @@ export function runTour(tour, ui) {
     await ui.cross.cover(); await push;
     if (!alive) return;
     // ---- the room: its name, then walk up to the screen ----
-    room = rm; ui.label(place.building, place.name);
-    pass.scene = room.scene;
+    room = rm; ui.label(place.building, place.name); ui.hud?.('');
+    pass.scene = room.scene; R.renderer.toneMappingExposure = room.room.exposure ?? 1;
     camera.position.copy(room.start); R.look.copy(room.room.look); camera.lookAt(R.look);
     frame(() => {});
     ui.title(place, b.name);
@@ -176,6 +200,9 @@ export function runTour(tour, ui) {
   return {
     skip() { skipping = true; },
     view,
-    stop() { alive = false; cancelAnimationFrame(raf); ui.canvas.removeEventListener('pointermove', move); },
+    stop() {
+      alive = false; cancelAnimationFrame(raf); ui.canvas.style.cursor = '';
+      ui.canvas.removeEventListener('pointermove', move); ui.canvas.removeEventListener('pointerdown', down); ui.canvas.removeEventListener('pointerup', lift); ui.canvas.removeEventListener('pointercancel', lift);
+    },
   };
 }
