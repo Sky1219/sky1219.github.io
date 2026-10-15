@@ -12,19 +12,30 @@
   <meta property="og:image" content="https://sky1219.github.io/og.jpg">
   <meta property="og:url" content="https://sky1219.github.io/">
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 20'%3E%3Cpath d='M8 19s6-6.2 6-11A6 6 0 0 0 2 8c0 4.8 6 11 6 11Z' fill='%23d9620f'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 20'%3E%3Cpath d='M8 19s6-6.2 6-11A6 6 0 0 0 2 8c0 4.8 6 11 6 11Z' fill='%23e0650f'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Overpass:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>try { const t = localStorage.getItem('theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch {}</script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <a class="skip" href="#content">Skip to the work</a>
   <nav class="top" aria-label="Sections">
     <a class="top-name" href="#top">Akash Dasarraju</a>
-    <a href="#work">Work</a><a href="#h-research">Research</a><a href="#h-lead">HackUTD</a><a href="#h-edu">Education</a><a href="#contact">Contact</a>
+    <div class="top-links"><a href="#work">Projects</a><a href="#research">Research</a><a class="m-hide" href="#h-lead">Leadership</a><a class="m-hide" href="#h-edu">Education</a><a href="#contact">Contact</a></div>
+    <a class="top-cv" href="Akash_Dasarraju_Resume.pdf" target="_blank" rel="noopener">Résumé<span class="m-hide"> (PDF)</span></a>
+    <a class="top-icon" href="mailto:dasarrajuakash@gmail.com" aria-label="Email" title="Email"><svg aria-hidden="true"><use href="#i-mail"/></svg></a>
+    <button type="button" class="theme-btn top-icon" aria-label="Switch to dark mode" title="Switch to dark mode"><svg class="i-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="i-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>
   </nav>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <symbol id="i-pin" viewBox="0 0 16 20"><path d="M8 19s6-6.2 6-11A6 6 0 0 0 2 8c0 4.8 6 11 6 11Z" fill="currentColor"/><circle cx="8" cy="8" r="2.3" fill="var(--paper)"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><path d="M3 4.5h18A1.5 1.5 0 0 1 22.5 6v.6L12 13.1 1.5 6.6V6A1.5 1.5 0 0 1 3 4.5Zm-1.5 4.4L12 15.4l10.5-6.5V18a1.5 1.5 0 0 1-1.5 1.5H3A1.5 1.5 0 0 1 1.5 18V8.9Z" fill="currentColor"/></symbol>
+    <symbol id="i-github" viewBox="0 0 24 24"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57l-.02-2.04c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.31.76-1.61-2.66-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.43.37.82 1.1.82 2.22l-.01 3.29c0 .32.21.69.82.57A12 12 0 0 0 12 .3" fill="currentColor"/></symbol>
+    <symbol id="i-linkedin" viewBox="0 0 24 24"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13ZM7.12 20.45H3.56V9h3.56v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0Z" fill="currentColor"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1Z" fill="currentColor"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.6" fill="currentColor"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 1.5h8.4L20 7.1V21a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4.5 21V3A1.5 1.5 0 0 1 6 1.5Zm7.5 1.4v4.6h4.6L13.5 2.9ZM8 11.2v1.6h8v-1.6H8Zm0 3.6v1.6h8v-1.6H8Zm0 3.6V20h5.2v-1.6H8Z" fill="currentColor" fill-rule="evenodd"/></symbol>
     <defs>
       <!-- lit windows for the night plan -->
       <pattern id="lit" width="14" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(8)"><rect width="14" height="12" fill="#13241f"/><rect x="2" y="3" width="2.4" height="2.4" fill="#ffd79a" opacity=".9"/><rect x="8.5" y="7.5" width="2.4" height="2.4" fill="#ffe9c4" opacity=".45"/><rect x="9" y="1.5" width="2.2" height="2.2" fill="#bfe8ff" opacity=".35"/></pattern>
@@ -32,137 +43,128 @@
   </svg>
 
   <header class="hero" id="top">
+    <button type="button" class="theme-btn hero-theme" aria-label="Switch to dark mode" title="Switch to dark mode"><svg class="i-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="i-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>
     <div class="hero-text">
-      <p class="tag">ML systems &middot; LLM inference &middot; UT Dallas, CS &rsquo;29</p>
       <h1><span>Akash</span> <span>Dasarraju</span></h1>
-      <p class="intro">I study computer science at UT Dallas and work on ML systems and LLM inference. In the CARAML Lab I research submodular methods for data-efficient learning and agent memory, and on my own time I write GPU kernels, benchmark KV-cache compression and train game-playing agents. I also help organize HackUTD, a 1,300-person student hackathon. I'm looking for a summer 2027 internship and open to part-time research now.</p>
-      <p class="how"><svg aria-hidden="true"><use href="#i-pin"/></svg><span>Tap an orange link to see the room where that work happens.<span class="hover-only"> Hover one first for a look at its screen.</span></span></p>
+      <p class="ask">Looking for a summer 2027 internship in ML research or ML systems.</p>
+      <p class="proof"><span><b>4.13 ms</b>/token, vs llama.cpp&rsquo;s 4.77</span><span><b>3&times;</b> the requests at &frac14; the KV cache</span><span><b>2</b> papers in preparation</span></p>
       <nav class="contact" aria-label="Contact">
-        <a href="mailto:dasarrajuakash@gmail.com">dasarrajuakash@gmail.com</a>
-        <a href="https://github.com/Sky1219" target="_blank" rel="noopener">GitHub</a>
-        <a href="https://www.linkedin.com/in/akash-dasarraju-143520240" target="_blank" rel="noopener">LinkedIn</a>
+        <a class="icon-link" href="mailto:dasarrajuakash@gmail.com" aria-label="Email dasarrajuakash@gmail.com" title="dasarrajuakash@gmail.com"><svg aria-hidden="true"><use href="#i-mail"/></svg></a>
+        <a class="icon-link" href="https://github.com/Sky1219" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg aria-hidden="true"><use href="#i-github"/></svg></a>
+        <a class="icon-link" href="https://www.linkedin.com/in/akash-dasarraju-143520240" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn"><svg aria-hidden="true"><use href="#i-linkedin"/></svg></a>
+        <a class="cv-link" href="Akash_Dasarraju_Resume.pdf" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-doc"/></svg>Résumé (PDF)</a>
       </nav>
+      <p class="intro">I build fast LLM inference and research data-efficient ML. My inference engine, <a class="place" href="#hipinfer" data-tour="hipinfer">hipinfer<svg><use href="#i-pin"/></svg></a>, decodes faster than llama.cpp on all 5 models I tested, and in UT Dallas&rsquo;s CARAML Lab I work on two submodular ML papers in preparation, on <a class="place" href="#subset" data-tour="subset">data selection<svg><use href="#i-pin"/></svg></a> and <a class="place" href="#memory" data-tour="memory">agent memory<svg><use href="#i-pin"/></svg></a>. I study computer science at UT Dallas and help organize HackUTD, a 1,300-person hackathon.</p>
+      <p class="how"><svg aria-hidden="true"><use href="#i-pin"/></svg><span>Orange links take you into the room where that work happens, each with a small demo you can play.<span class="hover-only"> Hover one first for a look at its screen.</span></span></p>
     </div>
-    <figure class="plan" aria-label="UT Dallas at night, with the four places on this page">
+    <figure class="plan" aria-label="UT Dallas at night, with the three places on this page">
       {{PLAN}}
       <svg class="plan-leaders" viewBox="0 0 1000 1000" aria-hidden="true">
-        <path d="M702 234 L722 120 H730"/><path d="M686 262 L850 400 H860"/><path d="M598 254 L430 408 V420"/><path d="M310 752 L335 690 H345"/>
-        <circle cx="702" cy="234" r="8"/><circle cx="686" cy="262" r="8"/><circle cx="598" cy="254" r="8"/><circle cx="310" cy="752" r="8"/>
+        <path d="M548 498 L566 382 H572"/><path d="M528 532 L700 640 H712"/><path d="M422 522 L340 690 V702"/>
+        <circle cx="548" cy="498" r="8"/><circle cx="528" cy="532" r="8"/><circle cx="422" cy="522" r="8"/>
       </svg>
-      <a class="pin" href="#subset" data-tour="subset" data-building="ECSS" style="--x:730; --y:120; --d:0">CARAML Research Lab<small>ECSS, research</small></a>
-      <a class="pin" href="#teaching" data-tour="teaching" data-building="ECSS" style="--x:860; --y:400; --d:1">Lecture hall<small>ECSS, teaching</small></a>
-      <a class="pin below" href="#hackutd" data-tour="hackutd" data-building="ECSW" style="--x:430; --y:420; --d:2">HackUTD<small>ECSW, organizing</small></a>
-      <a class="pin" href="#hipinfer" data-tour="hipinfer" data-building="CH6" style="--x:345; --y:690; --d:3">My apartment<small>Canyon Creek Heights South, hipinfer</small></a>
+      <a class="pin" href="#subset" data-tour="subset" data-building="ECSS" style="--x:572; --y:382; --d:0">CARAML Research Lab<small>Data selection research</small></a>
+      <a class="pin" href="#teaching" data-tour="teaching" data-building="ECSS" style="--x:712; --y:640; --d:1">Lecture hall<small>AI workshops</small></a>
+      <a class="pin below" href="#hackutd" data-tour="hackutd" data-building="ECSW" style="--x:340; --y:702; --d:2">HackUTD<small>Organizing</small></a>
       <figcaption>UT Dallas, Richardson, Texas</figcaption>
     </figure>
   </header>
 
+  <main id="content">
   <section class="work" id="work" aria-labelledby="h-work">
-    <div class="work-head">
-      <p class="sec-k">Work</p>
-      <h2 id="h-work">Six things, each with a room</h2>
-      <p>The picture on every card is that room's screen, running.<span class="hover-only"> Hover to watch it;</span> tap a card to go there.</p>
-    </div>
+    <h2 id="h-work" class="work-h">Projects</h2>
     <div class="cards">
-      <a class="card" data-reveal href="#hipinfer" data-tour="hipinfer">
-        <div class="shot"><canvas aria-hidden="true"></canvas></div>
-        <div class="card-body"><p class="card-k">Project &middot; Canyon Creek Heights</p><h3>hipinfer</h3><p>An inference engine written as HIP kernels, decoding TinyLlama at 87% of the GPU's memory-bandwidth limit.</p>
-          <ul><li>4.1 ms per token on an RTX 2080 Ti</li><li>8 to 16% faster than llama.cpp and vLLM, 6&times; Hugging Face</li></ul></div>
-      </a>
-      <a class="card" data-reveal href="#kv" data-tour="kv">
-        <div class="shot"><canvas aria-hidden="true"></canvas></div>
-        <div class="card-body"><p class="card-k">Project &middot; CARAML Lab</p><h3>SubCache</h3><p>A KV-cache compression benchmark for LLM inference, with five eviction methods and one of my own.</p>
-          <ul><li>3&times; the concurrent requests at a quarter of the cache</li><li>2.8&times; throughput for 5% more perplexity</li></ul></div>
-      </a>
-      <a class="card" data-reveal href="#mnk" data-tour="mnk">
-        <div class="shot"><canvas aria-hidden="true"></canvas></div>
-        <div class="card-body"><p class="card-k">Project &middot; CARAML Lab</p><h3>mnk-bench</h3><p>Ten ways to play (m, n, k) games on one bench, from matchboxes to a self-play network to an LLM.</p>
-          <ul><li>39k-parameter AlphaZero-style net, never lost at tic-tac-toe</li><li>Data selection found 2 to 3&times; more useful positions to label</li></ul></div>
-      </a>
-      <a class="card" data-reveal href="#subset" data-tour="subset">
-        <div class="shot"><canvas aria-hidden="true"></canvas></div>
-        <div class="card-body"><p class="card-k">Research &middot; CARAML Lab</p><h3>Submodular subset selection</h3><p>Picking the slice of a dataset that trains a model nearly as well as all of it, and turning that into a training loss.</p>
-          <ul><li>Submodular losses with hard negatives for CLIP-style models</li><li>Paper in preparation, targeting CVPR</li></ul></div>
-      </a>
-      <a class="card" data-reveal href="#memory" data-tour="memory">
-        <div class="shot"><canvas aria-hidden="true"></canvas></div>
-        <div class="card-body"><p class="card-k">Research &middot; CARAML Lab</p><h3>Memory for LLM agents</h3><p>Choosing which past turns an agent keeps under a fixed token budget, with a submodular objective.</p>
-          <ul><li>Against top-k and MMR on the LoCoMo benchmark</li><li>Qwen2.5-32B on vLLM; paper targeting ICML</li></ul></div>
-      </a>
-      <a class="card" data-reveal href="#hackutd" data-tour="hackutd">
-        <div class="shot"><canvas aria-hidden="true"></canvas></div>
-        <div class="card-body"><p class="card-k">Leadership &middot; ECSW</p><h3>HackUTD</h3><p>On the team that runs a 1,300-person hackathon: the events, the logistics, the sponsors, and a prompt-injection CTF.</p>
-          <ul><li>10 AI workshops; attendance tripled after I redesigned the lineup</li><li>Teaching RAG, MCP and agents to full rooms</li></ul></div>
-      </a>
+      <article class="card" data-card="hipinfer" data-reveal>
+        <div class="card-top">
+          <div class="shot"><canvas aria-hidden="true"></canvas><p class="shot-stat" aria-hidden="true">4.13 ms<small>per token, vs llama.cpp&rsquo;s 4.77</small></p></div>
+          <div class="card-body"><h3><a class="card-link" href="#hipinfer" data-tour="hipinfer" aria-describedby="go-hipinfer">hipinfer</a></h3><p>LLM inference engine in HIP. The fastest single-request decoder on all 5 models I tested: <b>4.13 ms per token</b>, against llama.cpp&rsquo;s 4.77.</p>
+            <p class="card-go" id="go-hipinfer"><svg aria-hidden="true"><use href="#i-pin"/></svg>Play: tune TinyLlama to beat the memory wall</p></div>
+        </div>
+        <details class="card-more"><summary>Details<span class="sr-only"> on hipinfer</span></summary>
+          <p class="meta"><span>C++, HIP/CUDA. <a href="https://github.com/Sky1219/hipinfer" target="_blank" rel="noopener">GitHub</a>, <a href="https://sky1219.github.io/hipinfer/" target="_blank" rel="noopener">site</a>, <a href="https://colab.research.google.com/github/Sky1219/hipinfer/blob/main/hipinfer_colab.ipynb" target="_blank" rel="noopener">Colab</a></span><time>2026 to present</time></p>
+          <ul>
+            <li>Reached 92 to 95% of cuBLAS speed on Turing with a from-scratch prefill GEMM, in an LLM inference engine I built in HIP, one source for NVIDIA and AMD GPUs. Its WikiText-2 perplexity is within 0.003% of Hugging Face's.</li>
+            <li>Fastest single-request FP16 decode on all 5 Llama and Qwen models I tested on an RTX 2080 Ti: 6 to 17% faster than llama.cpp on 1B to 3B models, at 81 to 87% of the memory-bandwidth limit (TinyLlama: 4.13 ms per token, against llama.cpp's 4.77). It also beat vLLM on an RTX A6000.</li>
+            <li>Added multi-GPU tensor parallelism with a custom all-reduce 1.5x faster than NCCL on small messages: 1.55 to 1.75x faster decode on two RTX 2080 Tis, and room for 7B to 8B models (Llama-3.1-8B, Mistral-7B) too large for one card.</li>
+          </ul>
+        </details>
+      </article>
+      <article class="card" data-card="kv" data-reveal>
+        <div class="card-top">
+          <div class="shot"><canvas aria-hidden="true"></canvas><p class="shot-stat" aria-hidden="true">3&times;<small>the requests at a quarter of the cache</small></p></div>
+          <div class="card-body"><h3><a class="card-link" href="#kv" data-tour="kv" aria-describedby="go-kv">SubCache</a></h3><p>KV-cache compression benchmark. Keeping a quarter of the cache fit <b>3&times; the requests</b> and gave 2.8&times; throughput.</p>
+            <p class="card-go" id="go-kv"><svg aria-hidden="true"><use href="#i-pin"/></svg>Play: keep 32 of 86 tokens and see if it remembers</p></div>
+        </div>
+        <details class="card-more"><summary>Details<span class="sr-only"> on SubCache</span></summary>
+          <p class="meta"><span>Python, PyTorch. <a href="https://github.com/Sky1219/SubCache" target="_blank" rel="noopener">GitHub</a>, <a href="https://sky1219.github.io/SubCache/" target="_blank" rel="noopener">site</a></span><time>2026</time></p>
+          <ul>
+            <li>Built an open-source KV-cache compression benchmark. On long coding-agent sessions, keeping 25% of the cache fit 3x more requests on one GPU and raised throughput 2.8x (64% lower cost per token), for a 5% rise in perplexity.</li>
+            <li>Benchmarked 9 eviction policies, including the published baselines H2O and R-KV, on real coding-agent sessions, then on LongBench and needle-in-a-haystack retrieval with Llama-3.1-8B and on MATH-500 with DeepSeek-R1-Distill-Qwen-1.5B.</li>
+            <li>Designed a submodular eviction method that beat H2O by 1.1 to 2.5% on repetitive agent sessions, then profiled it and found the bottleneck: at a 12.5% budget, choosing what to evict took 71% of decode time, against under 1% for H2O.</li>
+          </ul>
+        </details>
+      </article>
+      <article class="card" data-card="mnk" data-reveal>
+        <div class="card-top">
+          <div class="shot"><canvas aria-hidden="true"></canvas><p class="shot-stat" aria-hidden="true">2&ndash;3&times;<small>more useful positions found by data selection</small></p></div>
+          <div class="card-body"><h3><a class="card-link" href="#mnk" data-tour="mnk" aria-describedby="go-mnk">mnk-bench</a></h3><p>Ten game-playing methods on one bench. My 39k-parameter self-play network <b>never lost</b> to a perfect tic-tac-toe player.</p>
+            <p class="card-go" id="go-mnk"><svg aria-hidden="true"><use href="#i-pin"/></svg>Play: play tic-tac-toe against matchboxes and an LLM</p></div>
+        </div>
+        <details class="card-more"><summary>Details<span class="sr-only"> on mnk-bench</span></summary>
+          <p class="meta"><span>Python, PyTorch. <a href="https://github.com/Sky1219/mnk-bench" target="_blank" rel="noopener">GitHub</a>, <a href="https://sky1219.github.io/mnk-bench" target="_blank" rel="noopener">live demo</a></span><time>2026</time></p>
+          <ul>
+            <li>Built an open-source benchmark of 10 game-playing AI methods, from classic search to self-play networks and LLMs, on boards from tic-tac-toe to Gomoku, with 118 tests and CI. My 39k-parameter AlphaZero-style network never lost to a perfect tic-tac-toe player.</li>
+            <li>Applied my lab's <a class="place" href="#subset" data-tour="subset">targeted data-selection research<svg><use href="#i-pin"/></svg></a> to games, choosing which positions to label to fix an agent's tactical blind spots. It found 2 to 3x more relevant examples than random selection.</li>
+          </ul>
+        </details>
+      </article>
+    </div>
+    <div class="cards research" id="research">
+      <div class="lab-note" data-reveal>
+        <h2 id="h-research" class="work-h">Research</h2>
+        <p class="lab-meta">CARAML Lab, Prof. Rishabh Iyer<br>2026 to present</p>
+        <p>A submodular ML lab at UT Dallas. I build and run the experiments for two papers in preparation, guided by PhD students.</p>
+      </div>
+      <article class="card" data-card="subset" data-reveal>
+        <div class="card-top">
+          <div class="shot"><canvas aria-hidden="true"></canvas><p class="shot-stat" aria-hidden="true">Targeting CVPR<small>paper in preparation, not yet submitted</small></p></div>
+          <div class="card-body"><h3><a class="card-link" href="#subset" data-tour="subset" aria-describedby="go-subset">Submodular data selection</a></h3><p>Picking the few examples that teach a model the most, and turning that into training losses for CLIP-style models. <b>Paper targeting CVPR.</b></p>
+            <p class="card-go" id="go-subset"><svg aria-hidden="true"><use href="#i-pin"/></svg>Play: teach a model with 4 sentences</p></div>
+        </div>
+        <details class="card-more"><summary>Details<span class="sr-only"> on submodular data selection</span></summary>
+          <p class="meta"><span>Research, CARAML Lab</span><time>2026 to present</time></p>
+          <ul>
+            <li>Developing submodular training losses that use hard negatives to teach CLIP-style vision-language models which attributes belong to which objects. Trained and evaluated several loss functions and generated training data. Targeting CVPR.</li>
+          </ul>
+        </details>
+      </article>
+      <article class="card" data-card="memory" data-reveal>
+        <div class="card-top">
+          <div class="shot"><canvas aria-hidden="true"></canvas><p class="shot-stat" aria-hidden="true">Targeting ICML<small>paper in preparation, not yet submitted</small></p></div>
+          <div class="card-body"><h3><a class="card-link" href="#memory" data-tour="memory" aria-describedby="go-memory">Memory for LLM agents</a></h3><p>Choosing which past turns an agent keeps under a fixed token budget, against top-k and MMR retrieval. <b>Paper targeting ICML.</b></p>
+            <p class="card-go" id="go-memory"><svg aria-hidden="true"><use href="#i-pin"/></svg>Play: pack a conversation into 48 tokens</p></div>
+        </div>
+        <details class="card-more"><summary>Details<span class="sr-only"> on memory for LLM agents</span></summary>
+          <p class="meta"><span>Research, CARAML Lab</span><time>2026 to present</time></p>
+          <ul>
+            <li>Developing a submodular method that chooses which past conversation turns an LLM agent keeps under a fixed token budget, compared against top-k and MMR retrieval, self-hosting Qwen2.5-32B with vLLM on an A6000. Targeting ICML.</li>
+          </ul>
+        </details>
+      </article>
     </div>
   </section>
 
-  <main>
-    <section aria-labelledby="h-projects">
-      <h2 id="h-projects">Projects</h2>
-      <article class="entry" data-reveal>
-        <div class="entry-head">
-          <h3>SubCache</h3>
-          <a class="room" href="#kv" data-tour="kv"><svg aria-hidden="true"><use href="#i-pin"/></svg>ECSS lab</a>
-          <p class="meta"><span>Python, PyTorch. <a href="https://github.com/Sky1219/SubCache" target="_blank" rel="noopener">GitHub</a></span><time>2026</time></p>
-        </div>
-        <ul>
-          <li>Built an open-source <a class="place" href="#kv" data-tour="kv">KV-cache compression benchmark<svg><use href="#i-pin"/></svg></a> for LLM inference. Keeping 25% of the cache fit 3x more concurrent requests on one GPU and raised throughput 2.8x (64% lower cost per token), for a 5% rise in perplexity.</li>
-          <li>Benchmarked 5 eviction methods, including the published baselines H2O, StreamingLLM and SnapKV, on DeepSeek-Coder 1.3B and TinyLlama across two GPUs (RTX 2080 Ti, A6000).</li>
-          <li>Designed a new eviction method that beat H2O on output quality by up to 1.4% on AI-agent workloads.</li>
-        </ul>
-      </article>
-      <article class="entry" data-reveal>
-        <div class="entry-head">
-          <h3>mnk-bench</h3>
-          <a class="room" href="#mnk" data-tour="mnk"><svg aria-hidden="true"><use href="#i-pin"/></svg>ECSS lab</a>
-          <p class="meta"><span>Python, PyTorch. <a href="https://github.com/Sky1219/mnk-bench" target="_blank" rel="noopener">GitHub</a>, <a href="https://sky1219.github.io/mnk-bench" target="_blank" rel="noopener">live demo</a></span><time>2026</time></p>
-        </div>
-        <ul>
-          <li>Built an open-source framework that benchmarks 10 game-playing AI methods, from classic search to self-play neural networks and LLMs, on boards from <a class="place" href="#mnk" data-tour="mnk">tic-tac-toe to Gomoku<svg><use href="#i-pin"/></svg></a>, with a CLI, 118 tests and CI.</li>
-          <li>Trained a 39k-parameter AlphaZero-style network by self-play in under 15 minutes per board on one CPU core. It never lost to a perfect player at tic-tac-toe or 4&times;4, and matched the strongest search agent at Connect Four.</li>
-          <li>Applied my lab's <a class="place" href="#subset" data-tour="subset">targeted data-selection research<svg><use href="#i-pin"/></svg></a> to games, choosing which positions to label to fix an agent's tactical blind spots. It found 2 to 3x more relevant examples than random selection.</li>
-        </ul>
-      </article>
-      <article class="entry" data-reveal>
-        <div class="entry-head">
-          <h3>hipinfer</h3>
-          <a class="room" href="#hipinfer" data-tour="hipinfer"><svg aria-hidden="true"><use href="#i-pin"/></svg>CH6 apartment</a>
-          <p class="meta"><span>HIP, Python. <a href="https://github.com/Sky1219/hipinfer" target="_blank" rel="noopener">GitHub</a></span><time>2026 to present</time></p>
-        </div>
-        <ul>
-          <li>Fastest of the engines I benchmarked at batch-1 decode on TinyLlama-1.1B: <a class="place" href="#hipinfer" data-tour="hipinfer">4.1 ms per token on an RTX 2080 Ti<svg><use href="#i-pin"/></svg></a> (87% of the memory-bandwidth limit), 8 to 16% faster than llama.cpp and vLLM, and 6x faster than Hugging Face.</li>
-          <li>Wrote FlashAttention-2-style attention, split-K GEMM and fused RMSNorm/RoPE kernels in HIP, with output token-identical to Hugging Face. Verified on NVIDIA GPUs; the AMD builds are not yet hardware-tested.</li>
-        </ul>
-      </article>
-    </section>
-
-    <section aria-labelledby="h-research">
-      <h2 id="h-research">Research</h2>
-      <article class="entry" data-reveal>
-        <div class="entry-head">
-          <h3>Undergraduate Research Assistant, CARAML Lab</h3>
-          <a class="room" href="#subset" data-tour="subset"><svg aria-hidden="true"><use href="#i-pin"/></svg>ECSS lab</a>
-          <p class="meta"><span>Prof. Rishabh Iyer, UT Dallas</span><time>2026 to present</time></p>
-        </div>
-        <ul>
-          <li>Own the implementation and experiments for two papers in preparation.</li>
-          <li>Developing <a class="place" href="#subset" data-tour="subset">submodular training losses<svg><use href="#i-pin"/></svg></a> that use hard negatives to teach CLIP-style vision-language models which attributes belong to which objects. Trained and evaluated several loss functions and generated training data. Targeting CVPR.</li>
-          <li>Developing a submodular method that <a class="place" href="#memory" data-tour="memory">chooses which past conversation turns an LLM agent keeps<svg><use href="#i-pin"/></svg></a> under a fixed token budget, compared against top-k and MMR retrieval on the LoCoMo benchmark, self-hosting Qwen2.5-32B with vLLM on an A6000. Targeting ICML.</li>
-        </ul>
-      </article>
-    </section>
-
+  <div class="resume">
     <section aria-labelledby="h-lead">
       <h2 id="h-lead">Leadership</h2>
       <article class="entry" data-reveal>
         <div class="entry-head">
           <h3>Organizer, HackUTD leadership team</h3>
-          <a class="room" href="#hackutd" data-tour="hackutd"><svg aria-hidden="true"><use href="#i-pin"/></svg>ECSW</a>
+          <a class="room" href="#hackutd" data-tour="hackutd"><svg aria-hidden="true"><use href="#i-pin"/></svg>Play: prompt-inject the model to leak a flag</a>
           <p class="meta"><span>UT Dallas</span><time>2026 to present</time></p>
         </div>
         <ul>
-          <li>Help organize a <a class="place" href="#hackutd" data-tour="hackutd">1,300-participant hackathon<svg><use href="#i-pin"/></svg></a>: events, logistics, sponsor coordination with T-Mobile, and our CTF.</li>
+          <li>Help organize a <a class="place" href="#hackutd" data-tour="hackutd">1,300-participant hackathon<svg><use href="#i-pin"/></svg></a>. I made our interactive 3D campus map (three.js) and the 3D modeling and animation for our interactive website.</li>
           <li>Tripled average workshop attendance, from 30 to over 100, by redesigning topic selection across <a class="place" href="#teaching" data-tour="teaching">10 AI workshops<svg><use href="#i-pin"/></svg></a>, leading 5 and assisting 5.</li>
         </ul>
       </article>
@@ -177,7 +179,7 @@
         </div>
         <ul>
           <li>GPA 3.84. National Merit Finalist. ACT 36.</li>
-          <li>Coursework: Linear Algebra, Calculus, Statistics for ML (Honors), Data Structures and Algorithms (Honors), Computer Architecture.</li>
+          <li>Coursework: Data Structures and Algorithms (Honors), Statistics for ML (Honors), Linear Algebra, Computer Architecture.</li>
         </ul>
       </article>
     </section>
@@ -185,18 +187,22 @@
     <section aria-labelledby="h-skills">
       <h2 id="h-skills">Skills</h2>
       <dl class="skills" data-reveal>
-        <dt>Languages</dt><dd>Python, Java, CUDA, HIP</dd>
-        <dt>Hardware and frameworks</dt><dd>NVIDIA GPUs (CUDA), HIP/ROCm, PyTorch</dd>
-        <dt>Focus</dt><dd>Submodular optimization, data-efficient ML, GPU kernels and benchmarking, LLM inference</dd>
+        <dt>GPUs and frameworks</dt><dd>NVIDIA Turing and Ampere; CUDA, HIP/ROCm, NCCL, PyTorch, vLLM, Hugging Face</dd>
+        <dt>Languages</dt><dd>Python, C++ (CUDA/HIP), Java</dd>
+        <dt>Focus</dt><dd>Submodular optimization, data-efficient ML, GPU kernels, LLM inference, tensor parallelism</dd>
       </dl>
     </section>
+  </div>
   </main>
 
   <section class="cta" id="contact" aria-labelledby="h-contact">
-    <p class="sec-k">Contact</p>
-    <h2 id="h-contact">Looking for a summer 2027 internship in ML systems. Open to part-time research now.</h2>
+    <h2 id="h-contact">Hiring for summer 2027? Let&rsquo;s talk.</h2>
     <a class="cta-mail" href="mailto:dasarrajuakash@gmail.com">dasarrajuakash@gmail.com</a>
-    <p class="cta-links"><a href="https://github.com/Sky1219" target="_blank" rel="noopener">GitHub</a><a href="https://www.linkedin.com/in/akash-dasarraju-143520240" target="_blank" rel="noopener">LinkedIn</a></p>
+    <nav class="cta-links contact" aria-label="Elsewhere">
+      <a class="icon-link" href="https://github.com/Sky1219" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg aria-hidden="true"><use href="#i-github"/></svg></a>
+      <a class="icon-link" href="https://www.linkedin.com/in/akash-dasarraju-143520240" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn"><svg aria-hidden="true"><use href="#i-linkedin"/></svg></a>
+      <a class="cv-link" href="Akash_Dasarraju_Resume.pdf" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-doc"/></svg>Résumé (PDF)</a>
+    </nav>
   </section>
 
   <footer>
@@ -209,12 +215,12 @@
     <div class="tour-bar">
       <button type="button" id="tour-close" class="tour-btn">Back to the page</button>
       <p id="tour-where" class="tour-where" aria-live="polite"></p>
-      <button type="button" id="tour-view" class="tour-btn" hidden>Look around</button>
-      <button type="button" id="tour-skip" class="tour-btn">Skip ahead</button>
+      <button type="button" id="tour-view" class="tour-btn" hidden>Look around the room</button>
+      <button type="button" id="tour-skip" class="tour-btn">Skip the flight</button>
     </div>
     <p id="tour-status" class="tour-status" aria-live="polite"></p>
     <p id="tour-hud" class="tour-hud" hidden aria-hidden="true"></p>
-    <div id="room-title" class="room-title" hidden aria-live="polite"></div>
+    <div id="room-title" class="room-title" hidden aria-hidden="true"></div>
     <aside id="brief" class="brief" hidden aria-labelledby="b-title"></aside>
   </div>
   <canvas id="warp" class="warp" hidden aria-hidden="true"></canvas>

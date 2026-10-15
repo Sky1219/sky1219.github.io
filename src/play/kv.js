@@ -1,4 +1,4 @@
-// "Finish the story with 32 slots of memory." DistilGPT-2 reads a short story through a KV cache that holds only
+// "Keep 32 of 86 tokens and see if it remembers." DistilGPT-2 reads a short story through a KV cache that holds only
 // BUDGET entries per layer, so once it's full every new token pushes one out. The visitor pins up to PINS tokens
 // that must stay; the other slots roll with the newest tokens. The story ends on two names from its start, and
 // the score is how likely the model found each name when it came, next to the real eviction policies at the same

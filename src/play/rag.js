@@ -1,4 +1,4 @@
-// "Build the RAG pipeline." DistilGPT-2 is asked where HackUTD is held and, on its own, gets it wrong. The visitor
+// "Fix the model's answer with retrieval." DistilGPT-2 is asked where HackUTD is held and, on its own, gets it wrong. The visitor
 // plays the retriever: one of five documents goes in front of the question, and the model's next-token
 // probabilities are measured again, along with the answer it goes on to give. One document answers the question;
 // two only look as if they might.

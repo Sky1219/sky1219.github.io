@@ -49,14 +49,14 @@ function facade(b, dir) {
   return isFinite(best) ? best : 25;
 }
 
-/* Run one tour. ui = { canvas, label, status, onScreen(screen), onArrive(screen), onView(close), reveal(), cross: { cover(), reveal() }, title() }.
-   Returns { skip(), stop(), view(close) }. */
+/* Run one tour. ui = { canvas, label, status, onScreen(screen), onArrive(screen), onView(close), reveal(), cross: { cover(), reveal() }, title(), quick }.
+   quick: straight to the room (the flight is for the first visit). Returns { skip(), stop(), view(close) }. */
 export function runTour(tour, ui) {
   R = R || setup(ui.canvas);
   const { camera, composer, pass } = R;
   const place = PLACES[tour.place];
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let alive = true, raf = 0, skipping = false, room = null, screen = null, sctx = null, sway = null, views = null, close = false;
+  let alive = true, raf = 0, skipping = !!ui.quick, room = null, screen = null, sctx = null, sway = null, views = null, close = false;
   const t0 = performance.now(), clock = () => (performance.now() - t0) / 1000;
   let lastF = clock();
   const frame = (fn) => {
@@ -118,7 +118,7 @@ export function runTour(tour, ui) {
     close = on; ui.onView(on);
     const from = { pos: camera.position.clone(), look: sway ? sway.look.clone() : R.look.clone() }, to = on ? views.close() : views.wide;
     sway = null;
-    await fly([from.pos, to.pos], [from.look, to.look], 1.1);
+    await fly([from.pos, to.pos], [from.look, to.look], 0.9);
     settle(to, on ? 0.02 : 0.06);
   };
   ui.canvas.addEventListener('pointermove', move); ui.canvas.addEventListener('pointerdown', down);
@@ -133,7 +133,7 @@ export function runTour(tour, ui) {
     ui.onScreen(screen);
     // ---- out of the tunnel, over campus ----
     const b = campus.highlight(place.building);
-    campus.glowOn = 0; pass.scene = campus.scene; R.renderer.toneMappingExposure = 1;
+    campus.glowOn = 0; pass.scene = campus.scene;
     const C = b.center, H = Math.max(10, b.height);
     const off = new THREE.Vector3(0.55, 0, 0.83).normalize();
     const overview = CAMPUS_HOME.clone().add(new THREE.Vector3(260, 520, 640)), near = C.clone().addScaledVector(off, 150).setY(80);
@@ -152,28 +152,28 @@ export function runTour(tour, ui) {
     if (!alive) return;
     campus.scan(C, reduce || skipping ? 0.01 : 2.8);
     ui.label(place.building, b.name);
-    await fly([overview, CAMPUS_HOME.clone().lerp(C, 0.5).add(new THREE.Vector3(200, 320, 380)), near], [CAMPUS_HOME, C.clone().setY(H * 0.5)], 2.6,
+    await fly([overview, CAMPUS_HOME.clone().lerp(C, 0.5).add(new THREE.Vector3(200, 320, 380)), near], [CAMPUS_HOME, C.clone().setY(H * 0.5)], 1.8,
       (k) => { campus.glowOn = Math.min(1, k * 1.6); });
-    await wait(0.4);
+    await wait(0.15);
     // ---- up to the wall, and through ----
     const wall = facade(b, off), y = Math.min(H * 0.45, 14);
     const door = C.clone().addScaledVector(off, wall + 22).setY(y), edge = C.clone().addScaledVector(off, wall + 3.5).setY(y);
     const aim = C.clone().setY(y * 0.9);
-    await fly([near, door], [C.clone().setY(H * 0.5), aim], 1.3);
-    const push = fly([door, edge], [aim, aim], 1.0);
-    await wait(0.45);
+    await fly([near, door], [C.clone().setY(H * 0.5), aim], 0.9);
+    const push = fly([door, edge], [aim, aim], 0.7);
+    await wait(0.25);
     await ui.cross.cover(); await push;
     if (!alive) return;
     // ---- the room: its name, then walk up to the screen ----
     room = rm; ui.label(place.building, place.name); ui.hud?.('');
-    pass.scene = room.scene; R.renderer.toneMappingExposure = room.room.exposure ?? 1;
+    pass.scene = room.scene;
     camera.position.copy(room.start); R.look.copy(room.room.look); camera.lookAt(R.look);
     frame(() => {});
     ui.title(place, b.name);
     await ui.cross.reveal();
     const portrait = ui.canvas.clientWidth < ui.canvas.clientHeight * 0.9;
     const end = framing(room, portrait);
-    await fly([room.start, ...room.room.via(room.S), end.pos], [room.room.look, end.look], 3.2);
+    await fly([room.start, ...room.room.via(room.S), end.pos], [room.room.look, end.look], 2.0);
     if (!alive) return;
     views = {
       wide: end,
@@ -191,7 +191,7 @@ export function runTour(tour, ui) {
         return { pos, look };
       },
     };
-    await wait(0.5);
+    await wait(0.2);
     close = false; await view(true);
     if (!alive) return;
     ui.onArrive(screen);

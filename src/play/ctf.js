@@ -1,4 +1,4 @@
-// "Prompt-injection CTF." DistilGPT-2 is given a hidden instruction that holds a flag and says to keep it secret.
+// "Prompt-inject the model to leak a flag." DistilGPT-2 is given a hidden instruction that holds a flag and says to keep it secret.
 // The visitor writes what comes next, in a limited number of tokens, and wins if the flag turns up anywhere in
 // the model's next few tokens. The flag's probability is measured as they type, and the shortest prompts that
 // worked are kept on a leaderboard (in this browser: the site has no server to share one).

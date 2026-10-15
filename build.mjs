@@ -12,7 +12,9 @@ const page = () => {
     // the buildings twice: outlines that draw themselves in, and a fill of lit windows
     .replace(/<path class="plan-buildings" d="([^"]*)"\/>/, '<path class="plan-lit" d="$1"/><path class="plan-buildings" pathLength="1" d="$1"/>')
     .replace(/<path class="plan-hot"/g, '<path class="plan-hot" pathLength="1"'));
-  writeFileSync('dist/index.html', html);
+  // a version on the stylesheet and script, new each build, so a browser never pairs this page with last deploy's cached copies
+  const v = Date.now().toString(36);
+  writeFileSync('dist/index.html', html.replace('href="styles.css"', `href="styles.css?v=${v}"`).replace('src="js/main.js"', `src="js/main.js?v=${v}"`));
   cpSync('src/styles.css', 'dist/styles.css');
 };
 page();

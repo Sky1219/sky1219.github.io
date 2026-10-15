@@ -1,4 +1,4 @@
-# What the generated rooms share (tools/build_lab.py, tools/build_apartment.py): materials, boxes merged into one
+# What a generated room needs (tools/build_lab.py): materials, boxes merged into one
 # mesh per material, the furniture both rooms have, and writing the scene out (GLBs, a preview render, the .blend).
 # Blender axes: x across the room, y towards the back wall, z up. Every piece of furniture faces +x in its frame.
 import bpy, bmesh, math, os

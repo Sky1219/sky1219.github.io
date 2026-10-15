@@ -1,7 +1,8 @@
 // People made of light: chunky block figures that glow (bloom does the halo). A crowd is drawn with one
 // InstancedMesh per body part, posed every frame from a small rig, so a hundred people cost a dozen draw calls.
 // Poses: 'type' (seated at a keyboard), 'phone' (leaning back, on a phone), 'listen' (seated, hands in lap),
-// 'stand', 'write' (standing at a board, writing), 'present' (standing, pointing at something now and then).
+// 'stand', 'write' (standing at a board, writing), 'present' (standing, pointing at something now and then),
+// 'wave' (standing, waving hello; the page's intro).
 // The avatar (me) is the same build in warm orange light.
 import * as THREE from 'three';
 
@@ -71,6 +72,10 @@ function pose(rig, kind, t, seed, turn = 1) {
   } else if (kind === 'listen') {
     for (const arm of [L, R]) { arm.sh.rotation.x = -0.35; arm.el.rotation.x = -0.9; }
     neck.rotation.y = Math.sin(t * 0.25 + s) * 0.25; neck.rotation.x = Math.sin(t * 0.3 + s * 2) * 0.05;
+  } else if (kind === 'wave') {                            // hello: right arm up and out, the forearm swinging
+    R.sh.rotation.z = -2.5 + Math.sin(t * 1.3) * 0.05; R.el.rotation.z = -0.35 + Math.sin(t * 7) * 0.4;
+    L.sh.rotation.z = 0.1; L.el.rotation.x = -0.2;
+    neck.rotation.z = Math.sin(t * 1.1) * 0.06; neck.rotation.y = 0.15; chest.rotation.z = Math.sin(t * 1.3) * 0.03;
   } else if (kind === 'stand') {
     chest.rotation.z = Math.sin(t * 0.8 + s) * 0.02; L.sh.rotation.z = 0.08; R.sh.rotation.z = -0.08;
     neck.rotation.y = Math.sin(t * 0.3 + s) * 0.3;
