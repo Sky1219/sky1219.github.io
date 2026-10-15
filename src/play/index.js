@@ -5,7 +5,7 @@ import { engine, load, subscribe } from '../llm/engine.js';
 
 const GAMES = {
   subset: () => import('./subset.js'), memory: () => import('./memory.js'), mnk: () => import('./mnk.js'),
-  rag: () => import('./rag.js'), ctf: () => import('./ctf.js'), kv: () => import('./kv.js'),
+  rag: () => import('./rag.js'), ctf: () => import('./ctf.js'), kv: () => import('./kv.js'), roofline: () => import('./roofline.js'),
 };
 
 export function mountPlay(id, box, screen) {
@@ -15,13 +15,13 @@ export function mountPlay(id, box, screen) {
     if (started) return; started = true;
     const game = await GAMES[id]();
     if (!alive) return;
-    status.textContent = ''; room.hidden = false;
+    status.textContent = ''; room.hidden = false; box.querySelector('.b-rec')?.setAttribute('hidden', '');
     unmount = game.mount(room, screen);
   };
   const render = () => {
     go.hidden = engine.phase !== 'idle' && engine.phase !== 'error';
     if (engine.phase === 'loading') status.textContent = `Downloading ${(engine.got / 1e6).toFixed(0)} of ${((engine.total || 85e6) / 1e6).toFixed(0)} MB…`;
-    else if (engine.phase === 'error') status.textContent = 'The model could not load here. Try a desktop browser.';
+    else if (engine.phase === 'error') { status.textContent = 'The model didn\'t download (it\'s 85 MB, and some phones run out of memory). The room\'s screen shows the same idea without it.'; go.textContent = 'Try again'; }
     else if (engine.phase === 'ready') start();
   };
   const unsub = subscribe(render); render();

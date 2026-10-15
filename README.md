@@ -10,10 +10,9 @@ screen, and the same link lights its building on the map.
 
 | Link | Room | Screen |
 |---|---|---|
-| Subset selection, agentic memory, KV-cache eviction, mnk-bench | CARAML Research Lab, ECSS | the computer at the back left |
+| Subset selection, agentic memory, KV-cache eviction, mnk-bench, hipinfer | CARAML Research Lab, ECSS | the computer at the back left |
 | Teaching AI workshops | a lecture hall in ECSS | the projector: RAG, MCP, agents and tools, hands-on |
 | Organizing HackUTD | ECSW during the hackathon | the stage screen dashboard |
-| hipinfer | my bedroom in Canyon Creek Heights South | the monitor: the decode loop, kernel by kernel |
 
 ## The KV-cache game
 
@@ -31,19 +30,20 @@ Face's fp32 model, and perplexity is 35.9 against 36.3 (the difference is the in
 
 ## The games
 
-Every tour except hipinfer's has a game in its panel, played on that same in-browser DistilGPT-2 (one
+Every tour has a game in its panel, played on that same in-browser DistilGPT-2 (one
 download, shared: `src/llm/engine.js` holds the model in a pool of workers, and the KV-cache experiment and the
 games all send their work through it). The controls are in the panel; the room's screen shows the result, and
 clicking a step hands the screen back to the walkthrough.
 
 | Tour | Game | What is measured |
 |---|---|---|
-| KV-cache eviction | Finish the story with 32 slots of memory | P(each name) when the ending reaches it, and perplexity on the ending, with your pinned tokens against StreamingLLM, H2O, SnapKV, facility location and the full cache at a 32-entry budget |
-| Subset selection | Teach it with 4 sentences | Perplexity on a held-out passage after your 4 of 24 sentences, facility location's 4 and a random 4 |
-| Agentic memory | Pack the context | Probability of the right answer token from the turns you fit in 48 tokens, against recency-only and set cover |
-| mnk-bench | Matchboxes vs. the language model | MENACE (O) against DistilGPT-2 (X), which scores each legal move as the next token of the game written as text |
-| Teaching workshops | Build the RAG pipeline | Next-token probabilities, and the 8-token answer, for a question about HackUTD with each of five documents retrieved |
-| HackUTD | Prompt-injection CTF | Whether a hidden flag turns up in the model's next 12 tokens after your suffix of at most 20; shortest working prompts ranked |
+| hipinfer | Tune TinyLlama to beat the memory wall | This device's decode time and memory bandwidth on DistilGPT-2, then a roofline plan for TinyLlama-1.1B on the RTX 2080 Ti (fitted to hipinfer's measured runs: 4.13 ms at batch 1, about 7,500 tok/s at 64) against four challenges |
+| KV-cache eviction | Keep 32 of 86 tokens and see if it remembers | P(each name) when the ending reaches it, and perplexity on the ending, with your pinned tokens against StreamingLLM, H2O, SnapKV, facility location and the full cache at a 32-entry budget |
+| Subset selection | Teach a model with 4 sentences | Perplexity on a held-out passage after your 4 of 24 sentences, facility location's 4 and a random 4 |
+| Agentic memory | Pack a conversation into 48 tokens | Probability of the right answer token from the turns you fit in 48 tokens, against recency-only and set cover |
+| mnk-bench | Play tic-tac-toe against matchboxes and an LLM | MENACE (O) against DistilGPT-2 (X), which scores each legal move as the next token of the game written as text |
+| Teaching workshops | Fix the model's answer with retrieval | Next-token probabilities, and the 8-token answer, for a question about HackUTD with each of five documents retrieved |
+| HackUTD | Prompt-inject the model to leak a flag | Whether a hidden flag turns up in the model's next 12 tokens after your suffix of at most 20; shortest working prompts ranked |
 
 Nothing in them is scripted: the numbers are whatever the model does on the visitor's machine. Facility location
 runs on idf-weighted means of the model's token embeddings and never sees the passage. The CTF leaderboard is
@@ -73,6 +73,8 @@ The page opens a tour directly from its link too, for example `/#kv`.
 - `src/index.html`, `src/styles.css`: the page. Résumé text is written straight into the HTML. The hero map is
   campus at night, drawn from `src/campus-plan.svg`.
 - `src/content.js`: every tour's room, title, explanation, steps and "My part".
+- `src/intro.js`: the hello a moment after the page loads: my avatar pops up in the corner, waves, and says the
+  orange links are worth clicking. On every load, but not after a tour has been opened (so not on the way back from one), nor with reduced motion.
 - `src/warp.js`: the way in (the grid wave from the link) and the block transition into a room.
 - `src/screens/`: what runs on each room's screen, drawn on a canvas (`subset`, `memory`, `kv`, `mnk`,
   `hackathon`, `board`, `hipinfer`). `kit.js` has the shared look: panes, highlighted Python, plots, a terminal. The
@@ -88,16 +90,14 @@ The page opens a tour directly from its link too, for example `/#kv`.
   OpenStreetMap footprints, with the scan-in; `rooms.js` loads the rooms and sets their lighting and camera
   paths; `people.js` builds the light people and my avatar; `index.js` runs the flight and the camera.
   three.js and the rooms only load when someone opens a tour.
-- `public/rooms/*.glb`: the four rooms and the avatar, modelled in Blender. Sources: `assets/rooms.blend`
+- `public/rooms/*.glb`: the three rooms and the avatar, modelled in Blender. Sources: `assets/rooms.blend`
   (scenes Lab, Hall and Atrium; each room has empties named `cam_start` and `screen_target`) and
   `assets/avatar.blend` (one mesh per body part, named like the rig's parts in `people.js`). Export with
   File > Export > glTF (.glb), "Active scene" on, into `public/rooms/`. The lab is generated instead, after a
   photo of the real room: `blender -b assets/rooms.blend --python tools/build_lab.py` rebuilds the Lab scene and
   exports it. The two labmates in that photo are modelled the same way as the avatar, by
-  `blender -b --factory-startup --python tools/build_labmates.py` (`public/rooms/labmates.glb`). My bedroom is generated
-  the same way: `blender -b assets/rooms.blend --python tools/build_apartment.py` rebuilds the Apartment scene and
-  exports `public/rooms/apartment.glb`. Both generators build from `tools/roomkit.py` (materials, boxes, the shared
-  furniture, export and preview).
+  `blender -b --factory-startup --python tools/build_labmates.py` (`public/rooms/labmates.glb`). The lab generator builds
+  from `tools/roomkit.py` (materials, boxes, the furniture, export and preview).
 - `public/data/`: campus geometry. `campus3d.*` come from the HackUTD CTF map; `site.json` and
   `src/campus-plan.svg` are made by `python3 tools/prep.py <path to the CTF repo's public/map/data>`;
   `python3 tools/prep.py --plan` redraws the hero map alone from `site.json`.

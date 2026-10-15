@@ -18,7 +18,7 @@ function surface(canvas) {
 /* The way in. The page breaks into a grid of cells in a wave from the link you clicked, each cell flashing as it
    turns; on the dark that's left, a survey grid and the destination decode in. Holds until release(), then the
    campus scans itself in underneath (tour/campus.js). Returns { release(): Promise, stop() }. */
-export function enter(canvas, from, lines) {
+export function enter(canvas, from, lines, MIN = 1.2) {
   const { ctx, dpr, w, h } = surface(canvas), S = Math.max(26, Math.round(Math.min(w, h) / 26));
   const cols = Math.ceil(w / S), rows = Math.ceil(h / S), far = Math.hypot(Math.max(from.x, w - from.x), Math.max(from.y, h - from.y));
   const cells = [];
@@ -26,7 +26,7 @@ export function enter(canvas, from, lines) {
     const x = c * S, y = r * S, d = Math.hypot(x + S / 2 - from.x, y + S / 2 - from.y) / far;
     cells.push({ x, y, d: d * 0.7 + Math.random() * 0.08, tint: Math.random() < 0.85 ? ORANGE : CYAN, lit: Math.random() < 0.05 });
   }
-  const WAVE = 0.85, MIN = 1.9;
+  const WAVE = 0.85;
   const start = performance.now(); let raf = 0, released = 0, frame = 0;
   const words = ['', ''];
   const draw = (now) => {

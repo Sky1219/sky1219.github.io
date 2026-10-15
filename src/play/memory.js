@@ -1,4 +1,4 @@
-// "Pack the context." A conversation ends with a question whose answer was given in its first turn. The visitor
+// "Pack a conversation into 48 tokens." A conversation ends with a question whose answer was given in its first turn. The visitor
 // drags turns into a fixed token budget; the score is the probability DistilGPT-2 gives the right answer as its
 // next token. A recency-only pick and a probabilistic-set-cover pick (cost-sensitive greedy) are measured too.
 import { C, text, rect, pane, clamp, fit, MONO } from '../screens/kit.js';

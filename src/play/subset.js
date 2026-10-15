@@ -1,4 +1,4 @@
-// "Teach it with 4 sentences." Twenty-four sentences about one small town, four of which become the prompt; the
+// "Teach a model with 4 sentences." Twenty-four sentences about one small town, four of which become the prompt; the
 // score is DistilGPT-2's perplexity on a short passage about the same town that it hasn't seen. Facility location
 // (over sentence embeddings made from the model's own token embeddings) and a random draw each pick their four,
 // and all three are measured. Neither of them sees the passage.

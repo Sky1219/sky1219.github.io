@@ -1,20 +1,21 @@
-// hipinfer's workstation: the decode loop on my own RTX 2080 Ti. Generating one token at a time is bound by memory
-// bandwidth, so the screen shows what the kernels do about it: the bandwidth floor, the fused kernels on a
-// timeline, the attention tiles, the split-K GEMM, and the benchmark against the other engines. hipinfer's
-// figures are the measured ones; llama.cpp and vLLM are placed inside the measured 8 to 16% range (ENGINES).
+// hipinfer's decode loop on an RTX 2080 Ti. Generating one token at a time is bound by memory bandwidth, so the
+// screen shows what the kernels do about it: the bandwidth floor, the fused kernels on a timeline, flash-decoding
+// attention, the GEMV keeping every SM reading, and the benchmark against the other engines. Every engine figure
+// is hipinfer's measured one (README, TinyLlama-1.1B, fp16, batch 1, 128-token context); the kernel timeline is
+// illustrative.
 import { Screen, C, text, rect, line, pane, axes, clamp, ease, SANS } from './kit.js';
 
-const GPU = { name: 'RTX 2080 Ti', bw: 616 };                   // GB/s
-const MODEL = { name: 'TinyLlama-1.1B', gb: 2.2 };               // fp16 weights read for every token
-const FLOOR = (MODEL.gb / GPU.bw) * 1000;                        // ms per token if memory were the only cost
+export const GPU = { name: 'RTX 2080 Ti', bw: 616 };                   // GB/s
+export const MODEL = { name: 'TinyLlama-1.1B', gb: 2.09 };              // bytes read per token: the weights (not the embedding table) and the KV cache
+export const FLOOR = (MODEL.gb / GPU.bw) * 1000;                        // ms per token if memory were the only cost
 const ENGINES = [
-  { name: 'hipinfer', ms: 4.1, mine: true },
-  { name: 'llama.cpp', ms: 4.43 },
-  { name: 'vLLM', ms: 4.76 },
-  { name: 'Hugging Face', ms: 24.6 },
+  { name: 'hipinfer', ms: 4.13, mine: true },
+  { name: 'llama.cpp', ms: 4.77 },                      // F16 GGUF, best of flash-attention on/off
+  { name: 'torch.compile', ms: 5.24 },                  // gpt-fast style, static KV
+  { name: 'HF eager', ms: 27.7 },
 ];
 const BEFORE = [['rmsnorm', 0.5], ['rope', 0.4], ['qkv gemv', 1.6], ['attention', 1.3], ['o gemv', 1.2], ['rmsnorm', 0.5], ['gate/up gemv', 2.2], ['silu', 0.4], ['down gemv', 1.9]];
-const AFTER = [['rmsnorm + rope + qkv', 1.9], ['attention (FA-2 style)', 1.0], ['o gemv (split-K)', 1.0], ['rmsnorm + gate/up + silu (split-K)', 2.0], ['down gemv (split-K)', 1.5]];
+const AFTER = [['rmsnorm + qkv + rope + kv write', 1.9], ['attention', 1.0], ['o gemv + residual', 1.0], ['rmsnorm + gate/up + swiglu', 2.0], ['down gemv + residual', 1.5]];
 const TILES = 16, SPLIT = 4, SMS = 68, MINE = ENGINES[0].ms;
 const GAP = 0.35, SPAN = BEFORE.reduce((a, [, t]) => a + t + GAP, 0);   // one layer's launches end to end, with the gaps
 
@@ -24,10 +25,10 @@ export class HipinferScreen extends Screen {
     this.lines = []; this.logged = 0;
     const p = (x, c) => this.print(x, c);
     if (s === 0) { p('$ ./bench --model tinyllama-1.1b --batch 1 --tokens 256', C.green); p(`weights: 1.1B params in fp16, ${MODEL.gb} GB read for every token`); p(`${GPU.name}: ${GPU.bw} GB/s, so the floor is ${FLOOR.toFixed(2)} ms/token`, C.yellow); }
-    if (s === 1) { p('$ hipcc -O3 kernels/rmsnorm_rope.hip', C.green); p('fused: rmsnorm, rope and the q/k/v pack in one launch'); p('launches per layer: 9 -> 5', C.yellow); }
-    if (s === 2) { p('$ hipcc -O3 kernels/attention.hip', C.green); p('K/V tiles stream through shared memory; the softmax runs online'); p('nothing is written back until the last tile', C.dim); }
-    if (s === 3) { p('$ hipcc -O3 kernels/gemv_splitk.hip', C.green); p(`batch 1: every GEMM is a matrix times a vector, split ${SPLIT} ways over K`); p(`${SMS} SMs busy instead of a handful`, C.yellow); }
-    if (s === 4) { p('$ ./verify --ref huggingface --tokens 256', C.green); p('tokens identical to Hugging Face: 256/256', C.green); p('$ ./bench --all', C.green); }
+    if (s === 1) { p('$ hipcc -O3 src/kernels.cuh', C.green); p('fused: rmsnorm as the prologue, qkv + rope + kv write as one epilogue'); p('launches per layer: 9 -> 5', C.yellow); }
+    if (s === 2) { p('decode attention, flash-decoding style', C.green); p('the context splits into chunks that run at once, each with a running softmax'); p('the last block merges them; one pass over K/V serves the whole GQA group', C.dim); }
+    if (s === 3) { p('gemv: x @ W^T, streaming the weights with 16-byte loads', C.green); p('grid sized from the occupancy API, so every SM has rows to read'); p('520 to 580 GB/s of the card\'s 616', C.yellow); }
+    if (s === 4) { p('$ python tests/ppl.py && python tests/gate.py', C.green); p('WikiText-2 perplexity 8.5149 vs HF 8.5151; greedy 20/20 identical', C.green); p('$ scripts/run_baselines.sh', C.green); }
   }
   // on the last step, each engine's line is logged as its bar finishes growing
   update() {
@@ -37,8 +38,8 @@ export class HipinferScreen extends Screen {
   }
   draw(ctx) {
     const { w, h } = this, s = this.step, st = this.st;
-    this.chrome(ctx, 'akash@home: ~/hipinfer', 'Canyon Creek Heights South');
-    const hb = pane(ctx, 8, 38, 610, 356, ['decode: one token, one pass over the weights', 'kernel launches, one layer', 'attention, one query against the cache', 'split-K GEMV', 'ms per token, batch 1'][s], { accent: C.blue, right: `${MODEL.name} on the ${GPU.name}` });
+    this.chrome(ctx, 'akash@2080ti: ~/hipinfer', 'RTX 2080 Ti');
+    const hb = pane(ctx, 8, 38, 610, 356, ['decode: one token, one pass over the weights', 'kernel launches, one layer', 'attention, one query against the cache', 'GEMV: every SM reading', 'ms per token, batch 1'][s], { accent: C.blue, right: `${MODEL.name} on the ${GPU.name}` });
     if (s === 0) this.floor(ctx, hb, st);
     if (s === 1) this.fused(ctx, hb, st);
     if (s === 2) this.tiles(ctx, hb, st);
@@ -46,14 +47,14 @@ export class HipinferScreen extends Screen {
     if (s === 4) this.bench(ctx, hb, st);
     // the kernels, and which one is up
     const kb = pane(ctx, 626, 38, w - 634, 356, 'kernels  (HIP)', { accent: C.orange });
-    const K = [['rmsnorm + rope + qkv pack', 1], ['attention, FA-2 style', 2], ['gemv, split-K', 3], ['silu, fused into gate/up', 1], ['token sampler', -1]];
+    const K = [['rmsnorm + qkv + rope + kv write', 1], ['attention, flash-decoding', 2], ['gemv, 16-byte loads', 3], ['swiglu, fused into gate/up', 1], ['argmax, on the device', -1]];
     K.forEach(([k, on], i) => { const y = kb.y + 8 + i * 30; rect(ctx, kb.x - 4, y - 12, kb.w + 8, 26, { fill: on === s ? 'rgba(255,154,60,0.14)' : null }); text(ctx, k, kb.x, y, { size: 13, color: on === s ? C.orange : C.ink }); text(ctx, s === 4 || on < s ? 'ok' : on === s ? 'writing' : '…', kb.x + kb.w - 4, y, { size: 12, color: s === 4 || on < s ? C.green : C.dim, align: 'right' }); });
     const yv = kb.y + 170;
     text(ctx, 'output vs Hugging Face', kb.x, yv, { size: 12, color: C.dim });
     const n = s === 4 ? Math.min(24, Math.floor(st * 6)) : 0;
     for (let i = 0; i < 24; i++) rect(ctx, kb.x + (i % 12) * 28, yv + 16 + Math.floor(i / 12) * 22, 24, 16, { fill: i < n ? C.green : '#1a222c', alpha: i < n ? 0.85 : 1 });
-    text(ctx, s === 4 ? (n < 24 ? `checking token ${n + 1} of 256…` : 'token-identical, all 256') : 'checked after the kernels compile', kb.x, yv + 72, { size: 12, color: s === 4 && n === 24 ? C.green : C.dim });
-    text(ctx, 'verified on NVIDIA; AMD builds not yet run on hardware', kb.x, kb.y + kb.h - 6, { size: 11, color: C.faint });
+    text(ctx, s === 4 ? (n < 24 ? `checking token ${n + 1} of 128…` : 'perplexity within 0.003% of HF') : 'checked after the kernels compile', kb.x, yv + 72, { size: 12, color: s === 4 && n === 24 ? C.green : C.dim });
+    text(ctx, 'one source: run on NVIDIA, compile-checked for AMD', kb.x, kb.y + kb.h - 6, { size: 11, color: C.faint });
     this.terminal(ctx, 8, 402, 610, h - 410);
     const rb = pane(ctx, 626, 402, w - 634, h - 410, 'results', { accent: C.purple });
     text(ctx, 'engine', rb.x, rb.y + 4, { size: 12, color: C.dim }); text(ctx, 'ms/token', rb.x + 180, rb.y + 4, { size: 12, color: C.dim }); text(ctx, 'vs hipinfer', rb.x + 270, rb.y + 4, { size: 12, color: C.dim });
@@ -67,7 +68,7 @@ export class HipinferScreen extends Screen {
   // one token's cost: the whole model streams through, and the arithmetic hardly registers
   floor(ctx, b, st) {
     const k = ease((st % 2.4) / 1.9);
-    text(ctx, `every token reads all ${MODEL.gb} GB of weights`, b.x, b.y + 10, { size: 14, font: SANS, color: C.ink });
+    text(ctx, `every token reads ${MODEL.gb} GB: the weights and the KV cache`, b.x, b.y + 10, { size: 14, font: SANS, color: C.ink });
     rect(ctx, b.x, b.y + 36, b.w, 34, { fill: '#1a222c', r: 4 }); rect(ctx, b.x, b.y + 36, b.w * k, 34, { fill: C.blue, r: 4, alpha: 0.8 });
     for (let i = 1; i < 22; i++) rect(ctx, b.x + (b.w * i) / 22, b.y + 36, 1, 34, { fill: C.pane });
     text(ctx, `${(MODEL.gb * k).toFixed(2)} GB read   ${(FLOOR * k).toFixed(2)} ms`, b.x + b.w - 4, b.y + 86, { size: 12, color: C.dim, align: 'right' });
@@ -127,10 +128,10 @@ export class HipinferScreen extends Screen {
   // a skinny matmul at batch 1: slice K so every SM gets a share, then add the slices
   split(ctx, b, st) {
     const k = clamp(st / 4), on = Math.min(SPLIT, Math.floor(st / 1.0)), cols = [C.blue, C.cyan, C.purple, C.pink];
-    text(ctx, 'y = W · x      W: 5632 × 2048, x: one vector', b.x, b.y + 8, { size: 12, color: C.dim });
+    text(ctx, 'y = W · x      W: 11264 × 2048 (gate/up), x: one vector', b.x, b.y + 8, { size: 12, color: C.dim });
     const mx = b.x + 10, my = b.y + 30, mw = 240, mh = 180;
     for (let j = 0; j < SPLIT; j++) rect(ctx, mx + (j * mw) / SPLIT, my, mw / SPLIT - 2, mh, { fill: j < on ? cols[j] : '#1a222c', r: 2, alpha: j < on ? 0.75 : 1 });
-    text(ctx, `K, split ${SPLIT} ways →`, mx, my + mh + 14, { size: 11, color: C.dim });
+    text(ctx, 'weight rows, dealt out to blocks →', mx, my + mh + 14, { size: 11, color: C.dim });
     for (let j = 0; j < SPLIT; j++) rect(ctx, mx + (j * mw) / SPLIT, my + mh + 26, mw / SPLIT - 2, 12, { fill: j < on ? cols[j] : '#1a222c', r: 2 });
     text(ctx, 'x', mx + mw + 8, my + mh + 32, { size: 11, color: C.dim });
     // the SMs: how many are busy, one slice vs four
@@ -141,11 +142,11 @@ export class HipinferScreen extends Screen {
     text(ctx, `${busy} busy`, sx, sy + 6 * cell + 10, { size: 12, color: busy > 40 ? C.green : C.yellow });
     // the reduce
     rect(ctx, mx, my + mh + 60, mw, 14, { fill: '#1a222c', r: 2 }); for (let j = 0; j < on; j++) rect(ctx, mx, my + mh + 60, mw * ((j + 1) / SPLIT) * k, 14, { fill: cols[j], r: 2, alpha: 0.55 });
-    text(ctx, on === SPLIT ? 'partials added in a second pass: y' : 'partial sums, one per slice', mx, my + mh + 86, { size: 12, color: on === SPLIT ? C.green : C.dim });
-    text(ctx, 'with one block per output row most SMs sit idle; split-K keeps the whole GPU reading', b.x, b.y + b.h - 8, { size: 13, font: SANS, color: C.ink });
+    text(ctx, on === SPLIT ? 'every SM reading: 520 to 580 GB/s' : 'more blocks in flight', mx, my + mh + 86, { size: 12, color: on === SPLIT ? C.green : C.dim });
+    text(ctx, 'too few blocks leave SMs idle; a grid sized from occupancy keeps the whole GPU reading', b.x, b.y + b.h - 8, { size: 13, font: SANS, color: C.ink });
   }
   bench(ctx, b, st) {
-    const A = axes(ctx, b.x, b.y + 4, b.w, b.h - 30, { xlim: [-0.5, 3.5], ylim: [0, 28], ylabel: 'ms / token', yticks: [0, 5, 10, 15, 20, 25], tickFmt: (v) => String(v) });
+    const A = axes(ctx, b.x, b.y + 4, b.w, b.h - 30, { xlim: [-0.5, ENGINES.length - 0.5], ylim: [0, 30], ylabel: 'ms / token', yticks: [0, 5, 10, 15, 20, 25], tickFmt: (v) => String(v) });
     const n = Math.min(ENGINES.length, Math.floor((st - 1.5) / 1.6) + (st > 0.6 ? 1 : 0));
     line(ctx, [[A.X(-0.5), A.Y(FLOOR)], [A.X(3.5), A.Y(FLOOR)]], { color: C.yellow, lw: 1.5, dash: [5, 4] }); text(ctx, `bandwidth floor ${FLOOR.toFixed(2)} ms`, A.X(3.5) - 4, A.Y(FLOOR) - 10, { size: 11, color: C.yellow, align: 'right' });
     ENGINES.forEach((e, i) => {

@@ -13,8 +13,12 @@ const screensMod = () => import('./screens/index.js');
 
 const overlay = $('#tour'), canvas = $('#tour-canvas'), warpCv = $('#warp'), brief = $('#brief'), title = $('#room-title');
 const where = $('#tour-where'), status = $('#tour-status'), skipBtn = $('#tour-skip'), flat = $('#flat-game'), viewBtn = $('#tour-view'), hud = $('#tour-hud');
-const SCREEN_H = { lab: 606, hall: 576, ecsw: 576, home: 606 };
+const SCREEN_H = { lab: 606, hall: 576, ecsw: 576 };
 let current = null;          // { id, run, opener, pushed, stopSync, warp, blocks }
+let hello = null;            // the intro's hello, while it's up (see the end of this file)
+let toured = false;          // a tour has been opened this load: coming back from one, there's no hello
+// while a tour is up, the page behind it is inert: the tab order stays in the dialog
+const behind = () => document.querySelectorAll('body > :not(#tour):not(#warp):not(script)');
 
 // A room's screen on a canvas outside the tour: the hover peek, the work cards, the flat fallback. The screens lay
 // out at 1024 wide; scale draws them smaller (half size is a quarter of the work per frame). start(still) runs it,
@@ -63,7 +67,7 @@ for (const a of document.querySelectorAll('[data-tour]')) {
   a.addEventListener('pointerenter', warm, { once: true });
   a.addEventListener('focus', warm, { once: true });
   let timer = 0;
-  const on = () => { lit(id, true); if (canPeek && !a.matches('.pin, .card')) timer = setTimeout(() => startPeek(a), 260); };
+  const on = () => { lit(id, true); if (canPeek && !a.matches('.pin') && !a.closest('.card')) timer = setTimeout(() => startPeek(a), 260); };
   const off = () => { lit(id, false); clearTimeout(timer); stopPeek(); };
   a.addEventListener('pointerenter', on); a.addEventListener('pointerleave', off); a.addEventListener('focus', on); a.addEventListener('blur', off);
   a.addEventListener('click', (e) => {
@@ -74,25 +78,35 @@ for (const a of document.querySelectorAll('[data-tour]')) {
 }
 
 // the explanation, laid over the scene; the highlighted step follows the screen, and clicking a step jumps it there
-function showBrief(tour, screen) {
+function showBrief(tour, screen, focus = true) {
+  const lede = splitFirst(tour.lede);
   brief.innerHTML = `
     <p class="b-kicker">${esc(tour.kicker)}</p>
     <h2 id="b-title" tabindex="-1">${esc(tour.title)}</h2>
-    <p class="b-lede">${esc(tour.lede)}</p>
-    <ol class="b-steps">${tour.steps.map((s, i) => `<li><button type="button" data-step="${i}">${esc(s)}</button></li>`).join('')}</ol>
-    <p class="b-role"><b>My part.</b> ${esc(tour.role)}</p>
+    <p class="b-lede">${esc(lede[0])}</p>
     ${tour.play ? `<section class="b-play" aria-label="${esc(tour.play.title)}">
       <h3>${esc(tour.play.title)}</h3>
-      <p>${esc(tour.play.pitch)}</p>
-      <p>DistilGPT-2 is a small text model from 2019. It only continues the text it is given and does not follow instructions.</p>
-      <button type="button" class="b-go">Download the model (85 MB) and play</button>
+      ${tour.play.recorded ? recorded(tour.play.recorded) : ''}
+      <button type="button" class="b-go">Play it yourself (85 MB download)</button>
+      <p class="b-pitch">${esc(tour.play.pitch)}</p>
+      <p class="b-small">It runs DistilGPT-2, a small text model from 2019, in your browser. It only continues the text it is given and does not follow instructions.</p>
       <p class="b-status" aria-live="polite"></p>
       <div class="b-game" hidden></div>
-    </section>` : ''}`;
+    </section>` : ''}
+    <p class="b-role"><b>My part.</b> ${esc(tour.role)}</p>
+    <details class="b-more"><summary class="b-how">${esc(tour.how || 'How it works')}<span>${tour.steps.length} steps, following the screen</span></summary>
+      ${lede[1] ? `<p class="b-lede">${esc(lede[1])}</p>` : ''}
+      <ol class="b-steps">${tour.steps.map((s, i) => `<li><button type="button" data-step="${i}">${esc(s)}</button></li>`).join('')}</ol>
+    </details>
+    <footer class="b-next">
+      ${alsoIn(tour).length ? `<p class="b-also-k">Also in this room</p><div class="b-also">${alsoIn(tour).map((k) => `<button type="button" data-go="${k}">${esc(TOURS[k].title.split(':')[0])}</button>`).join('')}</div>` : ''}
+      <p>Hiring for summer 2027? <a href="mailto:dasarrajuakash@gmail.com">Email me</a> or open the <a href="Akash_Dasarraju_Resume.pdf" target="_blank" rel="noopener">résumé</a>.</p>
+    </footer>`;
   brief.hidden = false;
   overlay.classList.add('reading');
-  $('#b-title').focus({ preventScroll: true });
+  if (focus) $('#b-title').focus({ preventScroll: true });
   brief.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => screen.goto(+b.dataset.step)));
+  brief.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => switchTo(b.dataset.go), { once: true }));
   const unPlay = tour.play ? wirePlay(tour.play.id, screen) : () => {};
   const items = [...brief.querySelectorAll('.b-steps li')];
   let raf = 0, lastStep = -1;
@@ -102,6 +116,26 @@ function showBrief(tour, screen) {
   };
   sync();
   return () => { cancelAnimationFrame(raf); unPlay(); };
+}
+
+// the lede's first sentence leads the panel; the rest opens "How it works"
+function splitFirst(s) { const m = s.match(/^.+?[.?!](?=\s+\S)/); return m ? [m[0], s.slice(m[0].length).trim()] : [s, '']; }
+// one run of the game, recorded on this site's model, shown before anyone downloads it
+function recorded(r) {
+  return `<div class="b-rec"><p class="b-rec-k">One recorded run</p>
+    <table class="g-score"><thead><tr>${r.head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead>
+    <tbody>${r.rows.map((row, i) => `<tr${i === r.best ? ' class="best"' : ''}>${row.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>
+    <p class="b-rec-note">${esc(r.note)}</p></div>`;
+}
+
+// the room's other tours, in TOURS order
+function alsoIn(tour) { return Object.keys(TOURS).filter((k) => TOURS[k].place === tour.place && TOURS[k] !== tour); }
+// from one tour to the next without touching history twice: the new tour takes the old one's entry
+function switchTo(id) {
+  if (!current) return;
+  const { opener, pushed } = current;
+  close(true, false);
+  open(id, opener, null, { replace: true, pushed });
 }
 
 // the tour's game (src/play/): played in the panel, on the same in-browser model, with the result on the screen
@@ -136,22 +170,33 @@ async function playFlat(tour, me) {
   me.stopSync = () => { mini.stop(); stopBrief(); flat.hidden = true; };
 }
 
-function open(id, opener, from) {
+function open(id, opener, from, how = {}) {
   const tour = TOURS[id]; if (!tour) return;
   if (current) close(false);
+  toured = true; hello?.hide();
   const place = PLACES[tour.place];
   document.body.classList.add('touring');
+  for (const el of behind()) el.inert = true;
   overlay.hidden = false; overlay.classList.remove('reading', 'close'); viewBtn.hidden = true;
   brief.hidden = true; brief.innerHTML = ''; title.hidden = true;
   where.innerHTML = ''; status.textContent = '';
-  const pushed = location.hash !== `#${id}`;
-  if (pushed) try { history.pushState({ tour: id }, '', `#${id}`); } catch { /* sandboxed frames may refuse */ }
+  overlay.setAttribute('aria-label', `Tour: ${tour.title}`);
+  const pushed = how.replace ? how.pushed : location.hash !== `#${id}`;
+  try {
+    if (how.replace) history.replaceState({ tour: id }, '', `#${id}`);
+    else if (pushed) history.pushState({ tour: id }, '', `#${id}`);
+  } catch { /* sandboxed frames may refuse */ }
   const me = { id, opener, pushed, run: null, stopSync: null, warp: null, blocks: null };
   current = me;
   const flatMode = !webgl || reduce();
   skipBtn.hidden = flatMode;
+  $('#tour-close').focus({ preventScroll: true });
   if (flatMode) { where.innerHTML = `<b>${esc(place.building)}</b> ${esc(place.name)}`; playFlat(tour, me); return; }
-  me.warp = enter(warpCv, from || { x: innerWidth / 2, y: innerHeight / 2 }, [place.building, `${place.name}  //  ${place.latlon || '32.986 N  96.748 W'}`]);
+  // every tour flies in over campus ("Skip the flight" is there for anyone in a hurry); moving to another tour in the
+  // same room goes straight there
+  const quick = !!how.replace;
+  overlay.classList.toggle('flying', !quick);
+  me.warp = enter(warpCv, from || { x: innerWidth / 2, y: innerHeight / 2 }, [place.building, `${place.name}  //  32.986 N  96.748 W`], quick ? 0.5 : 1.2);
   tourMod().then((m) => {
     if (current !== me) return;
     me.run = m.runTour(tour, {
@@ -161,21 +206,22 @@ function open(id, opener, from) {
       hud: (s) => { hud.textContent = s; hud.hidden = !s; },
       reveal: () => me.warp.release(),
       cross: { cover: () => (me.blocks = blocks(warpCv)).cover(), reveal: () => me.blocks.reveal() },
-      title: (p, building) => showTitle(p, building),
-      onScreen: () => {},
-      onView: (on) => { overlay.classList.toggle('close', on); viewBtn.textContent = on ? 'Look around' : 'Back to the screen'; },
+      title: (p, building) => { if (!quick) showTitle(p, building); },
+      quick,
+      // the explanation is up as soon as the room's screen exists, so there's something to read during the flight
+      onScreen: (screen) => { if (current === me) me.stopSync = showBrief(tour, screen, false); },
+      onView: (on) => { overlay.classList.toggle('close', on); viewBtn.textContent = on ? 'Look around the room' : 'Back to the screen'; },
       onArrive: (screen) => {
         if (current !== me) return;
-        skipBtn.hidden = true;
-        if (!screen) { me.warp.stop(); me.run.stop(); playFlat(tour, me); return; }
-        viewBtn.hidden = false;
-        me.stopSync = showBrief(tour, screen);
+        skipBtn.hidden = true; overlay.classList.remove('flying');
+        if (!screen) { me.warp.stop(); me.run.stop(); me.stopSync?.(); me.stopSync = null; playFlat(tour, me); return; }
+        viewBtn.hidden = false; $('#b-title')?.focus({ preventScroll: true });
       },
     });
-  }).catch(() => { me.warp.stop(); playFlat(tour, me); });
+  }).catch(() => { me.warp.stop(); me.stopSync?.(); me.stopSync = null; playFlat(tour, me); });
 }
 
-function close(fromHistory = false) {
+function close(fromHistory = false, refocus = true) {
   if (!current) return;
   const { run, stopSync, opener, pushed, warp, blocks: bl } = current; current = null;
   if (run) run.stop();
@@ -183,17 +229,52 @@ function close(fromHistory = false) {
   if (warp) warp.stop(); if (bl) bl.stop();
   overlay.hidden = true; brief.hidden = true; flat.hidden = true; title.hidden = true; hud.hidden = true;
   document.body.classList.remove('touring');
+  for (const el of behind()) el.inert = false;
   if (!fromHistory) try { if (pushed) history.back(); else history.replaceState(null, '', location.pathname + location.search); } catch { /* ignore */ }
-  if (opener) opener.focus({ preventScroll: true });
+  if (opener && refocus) opener.focus({ preventScroll: true });
 }
 
 $('#tour-close').addEventListener('click', () => close());
 skipBtn.addEventListener('click', () => { if (current && current.run) current.run.skip(); });
 viewBtn.addEventListener('click', () => { if (current && current.run) current.run.view(!overlay.classList.contains('close')); });
-addEventListener('keydown', (e) => { if (e.key === 'Escape' && current) close(); });
+addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || !current) return;
+  if (e.target.matches?.('input, textarea, select, [contenteditable]')) { e.target.blur(); return; }
+  close();
+});
 addEventListener('popstate', () => { const id = location.hash.slice(1); if (current && !TOURS[id]) close(true); else if (TOURS[id] && !current) open(id); });
 if (TOURS[location.hash.slice(1)]) open(location.hash.slice(1));
 
+// the hello (src/intro.js): me, popping up to say the page is interactive. On every load, a moment in, but not once
+// a tour has been opened (so not on the way back from one), nor with reduced motion or no WebGL to draw me with
+{
+  if (webgl && !reduce()) setTimeout(() => {
+    if (toured) return;
+    import('./intro.js').then((m) => m.show({ onDone: () => { hello = null; } })).then((h) => {
+      hello = h; if (toured) h.hide();
+      if (matchMedia('(pointer: coarse)').matches) setTimeout(() => h.hide(), 9000);
+    }).catch(() => {});
+  }, 1600);
+}
+
+// on a phone the map follows the projects (the proof first); on a wide screen it sits beside the name
+{
+  const plate = $('.plan'), home = plate.parentElement, after = $('#research'), narrow = matchMedia('(max-width: 880px)');
+  const place = () => { const want = narrow.matches ? after.parentElement : home; if (plate.parentElement !== want) { if (narrow.matches) after.before(plate); else home.append(plate); } };
+  narrow.addEventListener('change', place); addEventListener('resize', place); place();
+}
+// light or dark: the system's choice until the visitor picks one, which is remembered (the <head> applies it before paint)
+{
+  const root = document.documentElement, sys = matchMedia('(prefers-color-scheme: dark)');
+  const now = () => root.dataset.theme || (sys.matches ? 'dark' : 'light');
+  const label = () => { const to = now() === 'dark' ? 'light' : 'dark'; for (const b of document.querySelectorAll('.theme-btn')) { b.setAttribute('aria-label', `Switch to ${to} mode`); b.title = `Switch to ${to} mode`; } };
+  for (const b of document.querySelectorAll('.theme-btn')) b.addEventListener('click', () => {
+    const t = now() === 'dark' ? 'light' : 'dark'; root.dataset.theme = t;
+    try { localStorage.setItem('theme', t); } catch { /* private mode: it lasts this visit */ }
+    label();
+  });
+  sys.addEventListener('change', label); label();
+}
 // the clock on the plate: it is always now in Richardson
 {
   const cap = $('.plan figcaption');
@@ -208,6 +289,19 @@ const seen = new IntersectionObserver((es) => es.forEach((e) => {
   e.target.classList.add('in'); seen.unobserve(e.target);
 }), { rootMargin: '0px 0px -6% 0px' });
 for (const el of document.querySelectorAll('[data-reveal]')) seen.observe(el);
+{
+  let queued = 0;
+  const above = () => {
+    queued = 0;
+    for (const el of document.querySelectorAll('[data-reveal]:not(.in)')) if (el.getBoundingClientRect().top < innerHeight) { el.classList.add('in'); seen.unobserve(el); }
+  };
+  addEventListener('scroll', () => { if (!queued) queued = requestAnimationFrame(above); }, { passive: true });
+  addEventListener('hashchange', above);
+}
+addEventListener('beforeprint', () => {
+  for (const el of document.querySelectorAll('[data-reveal]')) el.classList.add('in');
+  for (const d of document.querySelectorAll('details')) d.open = true;
+});
 // the bar across the top appears once the hero has scrolled away
 {
   const top = $('.top'), hero = $('.hero');
@@ -229,15 +323,16 @@ for (const el of document.querySelectorAll('[data-reveal]')) seen.observe(el);
     plate.addEventListener('pointerleave', () => { want = [0, 0]; r = null; go(); });
   }
 }
-// the work cards: each shows its room's screen, drawn as it comes into view and running while you're over it
+// the cards: each shows its room's screen, drawn as it comes into view and running while you're over it
 {
   const shot = async (card) => {
-    const tour = TOURS[card.dataset.tour], cv = card.querySelector('canvas'); if (!tour || !cv) return;
+    const tour = TOURS[card.dataset.card], cv = card.querySelector('canvas'); if (!tour || !cv) return;
     const mini = await miniScreen(cv, tour, 0.5);
     mini.fit(); for (let i = 0; i < 12; i++) mini.screen.frame(mini.ctx, 0.3);   // a few seconds in, so there's something on it
-    card.addEventListener('pointerenter', () => { if (!reduce()) mini.start(); });
-    card.addEventListener('pointerleave', () => mini.stop());
+    const top = card.querySelector('.card-top');
+    top.addEventListener('pointerenter', () => { if (!reduce()) mini.start(); });
+    top.addEventListener('pointerleave', () => mini.stop());
   };
   const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { io.unobserve(e.target); shot(e.target); } }), { rootMargin: '240px 0px' });
-  for (const c of document.querySelectorAll('.card[data-tour]')) io.observe(c);
+  for (const c of document.querySelectorAll('.card[data-card]')) io.observe(c);
 }

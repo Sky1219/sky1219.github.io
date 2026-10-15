@@ -3,7 +3,7 @@
 #   python tools/prep.py <path to the CTF repo's public/map/data>     both files
 #   python tools/prep.py --plan                                        the hero map again, from site.json
 import json, math, re, sys
-PLACES = ('ECSS', 'ECSW', 'CH6')               # the buildings the tours go to: lit orange on the plan
+PLACES = ('ECSS', 'ECSW')               # the buildings the tours go to: lit orange on the plan
 
 
 def read(SRC):
@@ -33,9 +33,9 @@ def read(SRC):
     return {'origin': O, 'footprints': feet, 'roads': roads}
 
 
-# hero plan: campus from the core down to the apartments, footprints as ink outlines, roads as hairlines.
-# A 1200 m box drawn into a 1000-unit viewBox (the pins in index.html use the same units).
-X0, Z0, SIZE, VB = -1095, -343, 1200, 1000
+# hero plan: the campus core, footprints as ink outlines, roads as hairlines. A 1000 m box drawn into a
+# 1000-unit viewBox (the pins in index.html use the same units).
+X0, Z0, SIZE, VB = -800, -560, 1000, 1000
 def plan(site):
     feet, roads = site['footprints'], site['roads']
     k = VB / SIZE

@@ -1,4 +1,4 @@
-// The four rooms, modelled in Blender (public/rooms/*.glb; the .blend is in assets/). Each GLB carries empties:
+// The three rooms, modelled in Blender (public/rooms/*.glb; the .blend is in assets/). Each GLB carries empties:
 // cam_start (where we walk in) and screen_target (the centre of the screen the explanation plays on). Here each
 // room gets its lighting, its people made of light, me (the orange one), and a live canvas over its screen.
 import * as THREE from 'three';
@@ -70,27 +70,6 @@ export const ROOMS = {
       scene.fog = new THREE.Fog(0x07080c, 30, 70);
       scene.add(new THREE.HemisphereLight(0xc9c2ff, 0x101018, 0.3));
       for (const [x, z, c] of [[-10, 5, 0x8a4dff], [10, 5, 0x2ee6ff], [0, -10, 0xff7a2e], [0, 10, 0xffe7c9], [-10, -8, 0xffd9b0], [10, -8, 0xffd9b0]]) { const p = new THREE.PointLight(c, 14, 28, 1.6); p.position.set(x, 9, z); scene.add(p); }
-    },
-  },
-  // my bedroom in Canyon Creek Heights South (tools/build_apartment.py): the desk runs along the right wall,
-  // across from the bed, with the monitor at its far end (facing -x) and me at the laptop nearer the door
-  home: {
-    file: 'rooms/apartment.glb', screen: { w: 0.6, h: 0.355, facing: V(-1, 0, 0) }, look: V(1.3, 1.0, -1.2), exposure: 0.62,
-    via: (S) => [V(-1.0, 1.5, 0.9), V(-1.05, 1.58, -0.1)],      // in along the bed, looking at the desk
-    // stepped back over the bed by the window: the screen on the left, me at the laptop on the right
-    final: { at: (S) => ({ pos: S.clone().add(V(-2.3, 0.5, 0.35)), look: S.clone().add(V(0.2, -0.3, 0.4)) }), dist: 1.5, up: 0.25 }, orbit: 0.3,
-    people: () => [],
-    me: { pos: V(0.95, 0, -0.1), yaw: Math.PI / 2, turn: 1, kind: 'type' },
-    motes: { x: [-1.6, 1.6], y: [0.3, 2.5], z: [-1.8, 1.8] },
-    // the tower's strip pulses and the bedside lamp flickers a little
-    pulse: [['m_apt_rgb', (t) => 2.4 + 1.6 * Math.sin(t * 2.4)], ['m_apt_lamp', (t) => 1.1 + 0.08 * Math.sin(t * 9)]],
-    light(scene) {
-      scene.background = new THREE.Color(0x0a0908);
-      scene.add(new THREE.HemisphereLight(0xffe2c4, 0x1a1410, 0.18));
-      const lamp = new THREE.PointLight(0xffb070, 1.0, 4, 1.8); lamp.position.set(1.45, 1.2, -1.45); scene.add(lamp);       // the desk lamp
-      const glow = new THREE.PointLight(0x8fc8ff, 0.5, 3, 1.8); glow.position.set(1.1, 1.15, -1.1); scene.add(glow);        // the monitor
-      const ceiling = new THREE.PointLight(0xfff0dd, 0.5, 6, 1.8); ceiling.position.set(0, 2.45, 0); scene.add(ceiling);
-      const moon = new THREE.DirectionalLight(0x6a86c8, 0.2); moon.position.set(-0.5, 2.0, -3); scene.add(moon);            // through the blinds
     },
   },
 };

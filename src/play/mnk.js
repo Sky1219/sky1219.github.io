@@ -1,4 +1,4 @@
-// "Matchboxes vs. the language model." DistilGPT-2 plays tic-tac-toe with no game knowledge at all: the game so
+// "Play tic-tac-toe against matchboxes and an LLM." DistilGPT-2 plays tic-tac-toe with no game knowledge at all: the game so
 // far is written out as text, and it takes the legal square whose number it finds the likeliest next token. It
 // is X and moves first. MENACE (the learner from screens/mnk.js) is O, starts out knowing nothing, and learns
 // from every game. The visitor can sit in either seat.
