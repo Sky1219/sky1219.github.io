@@ -15,6 +15,8 @@ const overlay = $('#tour'), canvas = $('#tour-canvas'), warpCv = $('#warp'), bri
 const where = $('#tour-where'), status = $('#tour-status'), skipBtn = $('#tour-skip'), flat = $('#flat-game'), viewBtn = $('#tour-view'), hud = $('#tour-hud');
 const SCREEN_H = { lab: 606, hall: 576, ecsw: 576 };
 let current = null;          // { id, run, opener, pushed, stopSync, warp, blocks }
+// counts an action in GoatCounter (index.html), if it loaded: a tour, a game, the film. Nothing personal
+const track = (path, title = path) => { try { window.goatcounter?.count?.({ path, title, event: true }); } catch {} };
 let hello = null;            // the intro's hello, while it's up (see the end of this file)
 let toured = false;          // a tour has been opened this load: coming back from one, there's no hello
 // while a tour is up, the page behind it is inert: the tab order stays in the dialog
@@ -141,7 +143,9 @@ function switchTo(id) {
 // the tour's game (src/play/): played in the panel, on the same in-browser model, with the result on the screen
 function wirePlay(id, screen) {
   let alive = true, unmount = () => {};
-  import('./play/index.js').then((m) => { if (alive) unmount = m.mountPlay(id, brief.querySelector('.b-play'), screen); });
+  const panel = brief.querySelector('.b-play');
+  panel?.addEventListener('click', () => track(`game-${id}`, `Game: ${id}`), { once: true });   // counted once, on the first touch
+  import('./play/index.js').then((m) => { if (alive) unmount = m.mountPlay(id, panel, screen); });
   return () => { alive = false; unmount(); };
 }
 
@@ -173,7 +177,7 @@ async function playFlat(tour, me) {
 function open(id, opener, from, how = {}) {
   const tour = TOURS[id]; if (!tour) return;
   if (current) close(false);
-  toured = true; hello?.hide();
+  toured = true; hello?.hide(); track(`tour-${id}`, `Tour: ${id}`);
   const place = PLACES[tour.place];
   document.body.classList.add('touring');
   for (const el of behind()) el.inert = true;
@@ -247,10 +251,22 @@ if (TOURS[location.hash.slice(1)]) open(location.hash.slice(1));
 
 // the hello (src/intro.js): me, popping up to say the page is interactive. On every load, a moment in, but not once
 // a tour has been opened (so not on the way back from one), nor with reduced motion or no WebGL to draw me with
-// the intro (src/boot.js) plays first when <head> asked for it; the hello waits for it
-const booted = document.documentElement.classList.contains('intro-on')
-  ? import('./boot.js').then((m) => m.run()).catch(() => document.documentElement.classList.remove('intro-on'))
-  : Promise.resolve();
+// the intro film (src/boot.js) is opt-in, from the button under the hero's paragraph (?intro=T still starts it on
+// load, to check a frame); the hello waits for it when it does
+const root = document.documentElement;
+const film = () => import('./boot.js').then((m) => m.run()).catch(() => {}).finally(() => root.classList.remove('intro-on'));
+const booted = root.classList.contains('intro-on') ? film() : Promise.resolve();
+{
+  const btn = document.querySelector('.film-btn');
+  if (btn && webgl && !reduce()) {   // not offered with reduced motion: the film is all motion
+    btn.hidden = false;
+    btn.addEventListener('click', () => {
+      if (root.classList.contains('intro-on')) return;
+      hello?.hide(); root.classList.add('intro-on'); track('intro-watch', 'Watched the intro');
+      film().then(() => btn.focus({ preventScroll: true }));
+    });
+  }
+}
 {
   if (webgl && !reduce()) booted.then(() => setTimeout(() => {
     if (toured) return;

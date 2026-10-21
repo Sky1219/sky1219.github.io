@@ -19,7 +19,7 @@
   <script>try { const t = localStorage.getItem('theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch {}</script>
   <!-- the intro (src/boot.js): once a visit, not with reduced motion, not when arriving straight into a tour. The class
        covers the page until it starts; if the script never runs, the cover lifts by itself -->
-  <script>try { const r = document.documentElement; if ((!sessionStorage.getItem('booted') || /[?&]intro=/.test(location.search)) && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)').matches) { sessionStorage.setItem('booted', '1'); r.classList.add('intro-on'); setTimeout(() => r.classList.remove('intro-on'), 30000); } } catch {}</script>
+  <script>try { if (/[?&]intro=/.test(location.search) && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('intro-on'); } catch {}</script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -27,8 +27,8 @@
   <nav class="top" aria-label="Sections">
     <a class="top-name" href="#top">Akash Dasarraju</a>
     <div class="top-links"><a href="#work">Projects</a><a href="#research">Research</a><a class="m-hide" href="#h-lead">Leadership</a><a class="m-hide" href="#h-edu">Education</a><a href="#contact">Contact</a></div>
-    <a class="top-cv" href="Akash_Dasarraju_Resume.pdf" target="_blank" rel="noopener">Résumé<span class="m-hide"> (PDF)</span></a>
-    <a class="top-icon" href="mailto:dasarrajuakash@gmail.com" aria-label="Email" title="Email"><svg aria-hidden="true"><use href="#i-mail"/></svg></a>
+    <a class="top-cv" href="Akash_Dasarraju_Resume.pdf" data-goatcounter-click="resume-pdf" target="_blank" rel="noopener">Résumé<span class="m-hide"> (PDF)</span></a>
+    <a class="top-icon" href="mailto:dasarrajuakash@gmail.com" data-goatcounter-click="email" aria-label="Email" title="Email"><svg aria-hidden="true"><use href="#i-mail"/></svg></a>
     <button type="button" class="theme-btn top-icon" aria-label="Switch to dark mode" title="Switch to dark mode"><svg class="i-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="i-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>
   </nav>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -51,12 +51,13 @@
       <h1><span>Akash</span> <span>Dasarraju</span></h1>
       <p class="ask">Looking for a summer 2027 internship in ML research or ML systems.</p>
       <nav class="contact" aria-label="Contact">
-        <a class="icon-link" href="mailto:dasarrajuakash@gmail.com" aria-label="Email dasarrajuakash@gmail.com" title="dasarrajuakash@gmail.com"><svg aria-hidden="true"><use href="#i-mail"/></svg></a>
-        <a class="icon-link" href="https://github.com/Sky1219" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg aria-hidden="true"><use href="#i-github"/></svg></a>
-        <a class="icon-link" href="https://www.linkedin.com/in/akash-dasarraju-143520240" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn"><svg aria-hidden="true"><use href="#i-linkedin"/></svg></a>
-        <a class="cv-link" href="Akash_Dasarraju_Resume.pdf" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-doc"/></svg>Résumé (PDF)</a>
+        <a class="icon-link" href="mailto:dasarrajuakash@gmail.com" data-goatcounter-click="email" aria-label="Email dasarrajuakash@gmail.com" title="dasarrajuakash@gmail.com"><svg aria-hidden="true"><use href="#i-mail"/></svg></a>
+        <a class="icon-link" href="https://github.com/Sky1219" data-goatcounter-click="github" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg aria-hidden="true"><use href="#i-github"/></svg></a>
+        <a class="icon-link" href="https://www.linkedin.com/in/akash-dasarraju-143520240" data-goatcounter-click="linkedin" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn"><svg aria-hidden="true"><use href="#i-linkedin"/></svg></a>
+        <a class="cv-link" href="Akash_Dasarraju_Resume.pdf" data-goatcounter-click="resume-pdf" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-doc"/></svg>Résumé (PDF)</a>
       </nav>
       <p class="intro">I write low-level GPU kernels and ML systems for LLM inference. My engine, <a class="place" href="#hipinfer" data-tour="hipinfer">hipinfer<svg><use href="#i-pin"/></svg></a>, has every kernel written from scratch and beats llama.cpp at batch-1 decode on every model I tested, on three GPUs. In UT Dallas&rsquo;s CARAML Lab I work on two submodular ML papers in preparation, on <a class="place" href="#subset" data-tour="subset">learning from less<svg><use href="#i-pin"/></svg></a> and <a class="place" href="#memory" data-tour="memory">agent memory<svg><use href="#i-pin"/></svg></a>. I study computer science at UT Dallas and help organize HackUTD, a 1,300-person hackathon.</p>
+      <button type="button" class="film-btn" hidden><svg viewBox="0 0 12 14" aria-hidden="true"><path d="M1 1.2v11.6a.6.6 0 0 0 .9.5l9.6-5.8a.6.6 0 0 0 0-1L1.9.7a.6.6 0 0 0-.9.5Z" fill="currentColor"/></svg>Watch the 23-second intro</button>
       <p class="how"><svg aria-hidden="true"><use href="#i-pin"/></svg><span>Orange links take you into the room where that work happens, each with a small demo you can play.<span class="hover-only"> Hover one first for a look at its screen.</span></span></p>
     </div>
     <figure class="plan" aria-label="UT Dallas at night, with the three places on this page">
@@ -202,11 +203,11 @@
 
   <section class="cta" id="contact" aria-labelledby="h-contact">
     <h2 id="h-contact">Hiring for summer 2027? Let&rsquo;s talk.</h2>
-    <a class="cta-mail" href="mailto:dasarrajuakash@gmail.com">dasarrajuakash@gmail.com</a>
+    <a class="cta-mail" href="mailto:dasarrajuakash@gmail.com" data-goatcounter-click="email">dasarrajuakash@gmail.com</a>
     <nav class="cta-links contact" aria-label="Elsewhere">
-      <a class="icon-link" href="https://github.com/Sky1219" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg aria-hidden="true"><use href="#i-github"/></svg></a>
-      <a class="icon-link" href="https://www.linkedin.com/in/akash-dasarraju-143520240" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn"><svg aria-hidden="true"><use href="#i-linkedin"/></svg></a>
-      <a class="cv-link" href="Akash_Dasarraju_Resume.pdf" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-doc"/></svg>Résumé (PDF)</a>
+      <a class="icon-link" href="https://github.com/Sky1219" data-goatcounter-click="github" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg aria-hidden="true"><use href="#i-github"/></svg></a>
+      <a class="icon-link" href="https://www.linkedin.com/in/akash-dasarraju-143520240" data-goatcounter-click="linkedin" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn"><svg aria-hidden="true"><use href="#i-linkedin"/></svg></a>
+      <a class="cv-link" href="Akash_Dasarraju_Resume.pdf" data-goatcounter-click="resume-pdf" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-doc"/></svg>Résumé (PDF)</a>
     </nav>
   </section>
 
@@ -230,5 +231,7 @@
   </div>
   <canvas id="warp" class="warp" hidden aria-hidden="true"></canvas>
   <script type="module" src="js/main.js"></script>
+  <!-- visit counts (GoatCounter: no cookies, no personal data; it ignores localhost) -->
+  <script data-goatcounter="https://sunsky12.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </body>
 </html>

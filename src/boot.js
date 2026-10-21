@@ -39,7 +39,7 @@ const FILM = {
     void main() {
       vec2 d = vUv - 0.5; float r = length(d);
       // through a change, some bands of the frame slip sideways and break into blocks, as if the signal were rebuilding
-      vec2 uv = vUv + vec2(0.0, (hash(vec2(floor(time * 0.4), 3.0)) - 0.5) * 0.0012); float band = floor(vUv.y * 30.0), tick = floor(time * 0.5);
+      vec2 uv = vUv + vec2(0.0, (hash(vec2(floor(time * 0.1), 3.0)) - 0.5) * 0.0012); float band = floor(vUv.y * 30.0), tick = floor(time * 0.1);
       float hitb = step(hash(vec2(band, tick)), glitch * 0.22);
       if (hitb > 0.0) { uv.x += (hash(vec2(band, tick + 7.0)) - 0.5) * 0.08 * glitch; vec2 b = vec2(0.014, 0.024); uv = (floor(uv / b) + 0.5) * b; }
       // a shockwave: a ring that bends the frame outward as it passes, bright and split at its edge
@@ -78,7 +78,9 @@ const FONT = '"Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif';
 // the cut: when each shot starts, and the finale's beats
 const CUTS = [0, 1.2, 2.35, 3.6, 4.85];                  // open, INFERENCE, RESEARCH, EFFICIENCY, finale
 const SHOTS = ['open', 'inference', 'research', 'efficiency', 'finale'];
-const WORDS = { inference: 'INFERENCE', research: 'RESEARCH', efficiency: 'EFFICIENCY' };
+// the floor names the work; the bar names what kind of work it is
+const WORDS = { inference: 'HIPINFER', research: 'RESEARCH', efficiency: 'SUBCACHE' };
+const KINDS = { inference: 'INFERENCE', research: 'RESEARCH', efficiency: 'EFFICIENCY' };
 const FIN = CUTS[4], SUCK = FIN + 0.9, DIVE = FIN + 1.3, BREAK = FIN + 2.55, END = BREAK + 1.1;   // after the break, the frame shatters off the page
 // bullet time in the finale, before the fan draws everything in: time stops, the colour drains, the camera whips round
 const BT0 = FIN + 0.5, BT1 = FIN + 0.85;
@@ -87,20 +89,23 @@ const SCRAMBLE = '!<>-_\\/[]{}=+*^?#01';
 // Between shots the subject doesn't cut, it dissolves: a scan plane sweeps across it, the solid behind the plane is
 // gone, and what was there flies off as square pixels sampled from its surface, which land on the next subject as a
 // second plane, a beat behind, builds it. TR is half the length of each change, centred on its cut.
-const TR = 0.42, PIX = 7000, FORM = 0.95;   // FORM: the opening, as the card builds out of a storm of pixels
+const TR = 0.28, PIX = 7000, FORM = 0.95;   // FORM: the opening, as the card builds out of a storm of pixels
 const SLOW = 3;   // film seconds are this many real seconds
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 const easeIn = (v) => v ** 3, easeOut = (v) => 1 - (1 - v) ** 3, smooth = (v) => v * v * (3 - 2 * v);
-const pick = (s) => s[Math.floor(Math.random() * s.length)];
-const scramble = (text, k) => Array.from(text, (ch, i) => (i < Math.floor(k * text.length) || ch === ' ' ? ch : pick(SCRAMBLE))).join('');
+// the scrambled letters change 2.5 times a second, not every frame (WCAG 2.3.1)
+const scramble = (text, k) => { const st = Math.floor(performance.now() / 400); return Array.from(text, (ch, i) => (i < Math.floor(k * text.length) || ch === ' ' ? ch : SCRAMBLE[(i * 7 + st * 13) % SCRAMBLE.length])).join(''); };
 const shotAt = (t) => CUTS.reduce((a, c, i) => (t >= c ? i : a), 0);
 
 export function run() {
   return new Promise((resolve) => {
     const root = document.documentElement;
     const cv = document.createElement('canvas');
-    cv.className = 'boot'; cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', 'An animated introduction. Press any key to skip.');
-    document.body.append(cv);
+    cv.className = 'boot'; cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', 'An animated introduction to Akash Dasarraju\'s work.');
+    const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'skip-intro'; btn.textContent = 'Skip intro';
+    // the page behind can't take focus while the film covers it
+    const shut = [...document.body.children].filter((el) => !el.inert); for (const el of shut) el.inert = true;
+    document.body.append(cv, btn); btn.focus({ preventScroll: true });
     const dpr = Math.min(2, devicePixelRatio || 1), ctx = cv.getContext('2d');
     const streak = document.createElement('canvas'), sctx = streak.getContext('2d');
     // a dirty lens: smudges, specks and a few bokeh rings, invisible until the frame turns bright, then lit up
@@ -113,20 +118,29 @@ export function run() {
       for (let i = 0; i < 260; i++) { d.fillStyle = `rgba(255,236,214,${0.1 + R() * 0.25})`; d.fillRect(R() * 640, R() * 360, 1 + R() * 1.6, 1 + R() * 1.6); } }
     // how bright the frame is, from a tiny copy of it
     const probe = document.createElement('canvas'); probe.width = 8; probe.height = 5; const pctx = probe.getContext('2d', { willReadFrequently: true });
-    let namePix = null, snap = null, snapHub = null, w = 0, h = 0, raf = 0, done = false, frame = 0, ready = null, last = 0, t0 = 0, skipAt = Infinity;
+    let namePix = null, snap = null, snapHub = null, glare = 0, w = 0, h = 0, raf = 0, done = false, frame = 0, ready = null, last = 0, t0 = 0;
     const start = performance.now();
     const held = new URLSearchParams(location.search).get('intro'), freeze = held && !Number.isNaN(+held) ? +held : null;
 
     const finish = () => {
       if (done) return; done = true;
       cancelAnimationFrame(raf); removeEventListener('resize', size);
-      for (const e of ['pointerdown', 'keydown', 'wheel', 'touchstart']) removeEventListener(e, skip, true);
-      root.classList.remove('intro-on'); cv.classList.add('out');
-      setTimeout(() => { cv.remove(); ready?.dispose(); resolve(); }, 420);
+      for (const e of ['pointerdown', 'wheel', 'touchstart']) removeEventListener(e, skip, true);
+      removeEventListener('keydown', onKey, true); clearTimeout(stall);
+      for (const el of shut) el.inert = false;
+      root.classList.remove('intro-on'); cv.classList.add('out'); btn.classList.add('out');
+      setTimeout(() => { cv.remove(); btn.remove(); ready?.dispose(); resolve(); }, 420);
     };
-    function skip() { if (!ready) { finish(); return; } if (skipAt === Infinity) skipAt = (performance.now() - t0) / 1000; }
-    for (const e of ['pointerdown', 'keydown', 'wheel', 'touchstart']) addEventListener(e, skip, { capture: true, passive: true });
-    function size() { w = innerWidth; h = innerHeight; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); ready?.resize(); }
+    // skipping fades straight to the page: no flash, no shatter
+    function skip() { finish(); }
+    // Tab moves to the button, and modifier keys (zoom, a screen reader's keys) don't skip
+    const onKey = (e) => { if (e.key === 'Tab' || e.ctrlKey || e.metaKey || e.altKey || ['Control', 'Meta', 'Alt', 'Shift', 'CapsLock'].includes(e.key)) return; skip(); };
+    for (const e of ['pointerdown', 'wheel', 'touchstart']) addEventListener(e, skip, { capture: true, passive: true });
+    addEventListener('keydown', onKey, true);
+    btn.addEventListener('click', skip);
+    // if the models haven't loaded in 10 s, give up and show the page
+    const stall = setTimeout(() => { if (!ready) finish(); }, 10000);
+    function size() { w = innerWidth; h = innerHeight; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); streak.width = 40; streak.height = Math.max(1, Math.round(h / 3)); ready?.resize(); }
     size(); addEventListener('resize', size);
 
     // ---------- the 3D: every model at the origin, shown one shot at a time, on a grid floor in the dark ----------
@@ -215,25 +229,47 @@ export function run() {
         mesh.frustumCulled = false; scene.add(mesh);
         return { pts, geo, P, F, mesh, speed: 4.5 + rnd() * 2.5, off: rnd() * 6 };
       });
-      // a wireframe city on the horizon, the way TRON's titles resolve: towers in outline, far off in the haze, a few
-      // windows lit, so the void becomes a place
-      const cityPos = [], winPos = [], winCol = [];
-      for (let i = 0; i < 170; i++) {
-        const a = rnd() * Math.PI * 2, r = 14 + rnd() * 9, cx = Math.cos(a) * r, cz = Math.sin(a) * r;
-        const bw = 0.5 + rnd() * 1.3, bd = 0.5 + rnd() * 1.3, bh = rnd() < 0.12 ? 6 + rnd() * 6 : 1 + rnd() * 4, y0 = FLOOR_Y;
-        const c = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sz]) => [cx + (sx * bw) / 2, cz + (sz * bd) / 2]);
+      // a city on the horizon, the way TRON's titles resolve: dark tower silhouettes cut out against the ember glow,
+      // outlined, banded floor by floor, stepped back as they rise, rows of lit windows, spires with blinking red lights;
+      // packed thickest behind the subjects, where the camera looks
+      const silPos = [], cityPos = [], winPos = [], winCol = [], beacons = [];
+      const tower = (cx, y0, cz, bw, bh, bd) => {
+        const x0 = cx - bw / 2, x1 = cx + bw / 2, z0 = cz - bd / 2, z1 = cz + bd / 2, y1 = y0 + bh;
+        const q = (a, b, c, d) => silPos.push(...a, ...b, ...c, ...a, ...c, ...d);
+        q([x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]); q([x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0]);
+        q([x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0]); q([x1, y0, z1], [x1, y0, z0], [x1, y1, z0], [x1, y1, z1]);
+        q([x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [x0, y1, z0]);
+        const c = [[x0, z0], [x1, z0], [x1, z1], [x0, z1]];
         for (let k = 0; k < 4; k++) {
-          const [x1, z1] = c[k], [x2, z2] = c[(k + 1) % 4];
-          cityPos.push(x1, y0 + bh, z1, x2, y0 + bh, z2, x1, y0, z1, x1, y0 + bh, z1);   // the roof's edges and the corners
-          if (bh > 3) cityPos.push(x1, y0 + bh * 0.5, z1, x2, y0 + bh * 0.5, z2);         // a floor line on the tall ones
+          const [ax, az] = c[k], [bx, bz] = c[(k + 1) % 4];
+          cityPos.push(ax, y1, az, bx, y1, bz, ax, y0, az, ax, y1, az);                       // the roof's edge and the corners
+          for (let fy = y0 + 0.7; fy < y1 - 0.2; fy += 0.7) cityPos.push(ax, fy, az, bx, fy, bz);   // a band at every few floors
+          // windows in rows on each face, some lit (mostly warm, a few cool)
+          const len = Math.hypot(bx - ax, bz - az), nx = (bz - az) / len, nz = -(bx - ax) / len;
+          for (let wy = y0 + 0.25; wy < y1 - 0.15; wy += 0.22) for (let u = 0.12; u < len - 0.08; u += 0.16) if (rnd() < 0.16) {
+            const f = u / len; winPos.push(ax + (bx - ax) * f + nx * 0.02, wy, az + (bz - az) * f + nz * 0.02);
+            const warm = rnd() < 0.78; winCol.push(warm ? 1 : 0.45, warm ? 0.62 : 0.85, warm ? 0.32 : 0.8);
+          }
         }
-        for (let k = 0; k < 6; k++) if (rnd() < 0.6) { const [x1, z1] = c[Math.floor(rnd() * 4)]; winPos.push(x1, y0 + rnd() * bh, z1); const o = rnd() < 0.7; winCol.push(o ? 1 : 0.37, o ? 0.54 : 0.82, o ? 0.24 : 0.75); }
+      };
+      for (let i = 0; i < 150; i++) {
+        const a = -Math.PI / 2 + (rnd() - 0.5) * Math.PI * (i < 110 ? 1.3 : 2), r = 19 + rnd() * 9, cx = Math.cos(a) * r, cz = Math.sin(a) * r;
+        let bw = 0.7 + rnd() * 1.4, bd = 0.7 + rnd() * 1.4, y = FLOOR_Y, tall = rnd() < 0.18;
+        const tiers = tall ? 3 : 1 + Math.floor(rnd() * 2);
+        for (let k = 0; k < tiers; k++) {                                            // stepped back as it rises
+          const bh = tall ? 2.6 + rnd() * 3.4 : 1 + rnd() * 3; tower(cx, y, cz, bw, bh, bd); y += bh; bw *= 0.7; bd *= 0.7;
+        }
+        if (tall || rnd() < 0.25) { const sh = 0.6 + rnd() * 1.6; cityPos.push(cx, y, cz, cx, y + sh, cz); beacons.push(cx, y + sh, cz); }   // a spire
       }
+      const silGeo = new THREE.BufferGeometry(); silGeo.setAttribute('position', new THREE.Float32BufferAttribute(silPos, 3));
+      const skyline = new THREE.Mesh(silGeo, new THREE.MeshBasicMaterial({ color: 0x050908, fog: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }));
       const cityGeo = new THREE.BufferGeometry(); cityGeo.setAttribute('position', new THREE.Float32BufferAttribute(cityPos, 3));
-      const city = new THREE.LineSegments(cityGeo, new THREE.LineBasicMaterial({ color: 0x3fa594, transparent: true, opacity: 0.22, fog: false, depthWrite: false }));
+      const city = new THREE.LineSegments(cityGeo, new THREE.LineBasicMaterial({ color: 0x4fc2ae, transparent: true, opacity: 0.5, fog: false }));
       const winGeo = new THREE.BufferGeometry(); winGeo.setAttribute('position', new THREE.Float32BufferAttribute(winPos, 3)); winGeo.setAttribute('color', new THREE.Float32BufferAttribute(winCol, 3));
-      const windows = new THREE.Points(winGeo, new THREE.PointsMaterial({ size: 2.5, sizeAttenuation: false, vertexColors: true, transparent: true, opacity: 0.8, fog: false, depthWrite: false }));
-      scene.add(city, windows);
+      const windows = new THREE.Points(winGeo, new THREE.PointsMaterial({ size: 0.07, sizeAttenuation: true, vertexColors: true, transparent: true, opacity: 0.9, fog: false, depthWrite: false }));
+      const beaconGeo = new THREE.BufferGeometry(); beaconGeo.setAttribute('position', new THREE.Float32BufferAttribute(beacons, 3));
+      const beaconPts = new THREE.Points(beaconGeo, new THREE.PointsMaterial({ color: 0xff3b2f, size: 4, sizeAttenuation: false, transparent: true, opacity: 1, fog: false, depthWrite: false }));
+      scene.add(skyline, city, windows, beaconPts);
       // searchlights out of the city (after Blade Runner): soft cones of light that rise into the haze and sweep slowly,
       // brightest down their middle and fading with height
       const beamGeo = new THREE.ConeGeometry(1.6, 20, 32, 1, true); beamGeo.translate(0, -10, 0); beamGeo.rotateX(Math.PI);
@@ -246,7 +282,7 @@ export function run() {
           fragmentShader: `uniform vec3 color; uniform float amt; varying float vD; varying vec3 vN, vV;
             void main() { float core = pow(abs(dot(vN, vV)), 3.0); gl_FragColor = vec4(color * core * (1.0 - vD) * (1.0 - vD) * 0.09 * amt, 1.0); }`,
         }));
-        m.position.set(Math.cos(a) * 16, FLOOR_Y, Math.sin(a) * 16); m.userData.ph = ph; m.frustumCulled = false; scene.add(m); return m;
+        m.position.set(Math.cos(a) * 21, FLOOR_Y, Math.sin(a) * 21); m.userData.ph = ph; m.frustumCulled = false; scene.add(m); return m;
       });
       const at2 = (pts, dist) => { const i = Math.max(0, Math.min(pts.length - 2, Math.floor(dist / 0.5))), f = clamp01(dist / 0.5 - i); return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f]; };
       const race = (t, fade) => {
@@ -332,7 +368,7 @@ export function run() {
         });
         return { pts, cols };
       };
-      const clouds = new Map(SUBJ.map((r) => [r, sample(r)]));
+      const clouds = new Map([...new Set(SUBJ)].map((r) => [r, sample(r)]));
       for (const r of new Set(SUBJ)) {
         r.userData.holo = new THREE.Plane(new THREE.Vector3(1, 0, 0), OPEN);
         const mat = new THREE.LineBasicMaterial({ color: 0x7fe8d6, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, clippingPlanes: [r.userData.holo] });
@@ -448,7 +484,7 @@ export function run() {
         const H = box.max.y - box.min.y + 0.3, D = box.max.z - box.min.z + 0.3, cy = (box.max.y + box.min.y) / 2, cz = (box.max.z + box.min.z) / 2;
         scanOut.position.set(sOut, cy, cz); scanOut.scale.set(D, H, 1); scanOut.material.uniforms.opacity.value = out ? Math.sin(Math.PI * sweepOut) : 0; scanOut.material.uniforms.cells.value.set(D * 6, H * 6);
         // the next subject as a wireframe ahead of its build; the last one's wireframe lingers where the cut has been
-        const fl = 0.8 + 0.2 * Math.sin(u * 140);
+        const fl = 0.85 + 0.15 * Math.sin(u * 16);   // a slow shimmer, about once a second
         inn.userData.holo.set(new THREE.Vector3(1, 0, 0), -sIn); inn.userData.wire.opacity = (out ? 0.55 : 0.16) * fl * smooth(clamp01(u / 0.2));   // the card's fins are dense up close
         if (out && out !== inn) { out.userData.holo.set(new THREE.Vector3(-1, 0, 0), sOut); out.userData.wire.opacity = 0.4 * fl * (1 - smooth(clamp01(u / 0.65))); }
         scanIn.position.set(sIn, cy, cz); scanIn.scale.set(D, H, 1); scanIn.material.uniforms.opacity.value = (out ? 0.7 : 0.3) * Math.sin(Math.PI * sweepIn); scanIn.material.uniforms.cells.value.set(D * 6, H * 6);
@@ -484,7 +520,7 @@ export function run() {
       composer.addPass(new OutputPass());
       const rays = new ShaderPass(RAYS); rays.uniforms.light.value = new THREE.Vector2(0.5, 0.5); composer.addPass(rays);
       const film = new ShaderPass(FILM); film.uniforms.shock.value = new THREE.Vector2(0.5, 0.5); composer.addPass(film);
-      const resize = () => { renderer.setSize(w, h, false); composer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); };
+      const resize = () => { const pr = Math.min(dpr, Math.sqrt(2.4e6 / Math.max(1, w * h))); renderer.setPixelRatio(pr); composer.setPixelRatio?.(pr); renderer.setSize(w, h, false); composer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); };
       const v = new THREE.Vector3(), look = new THREE.Vector3(), A = new THREE.Vector3(), B = new THREE.Vector3();
       const at = (o, x, y, z, ry = 0, rx = 0, rz = 0, s = 1) => { o.visible = true; o.position.set(x, y, z); o.rotation.set(rx, ry, rz); o.scale.setScalar(s); };
       let spin = 0, lock = null, changing = -1; const box = new THREE.Box3();
@@ -493,7 +529,7 @@ export function run() {
               // in close across the card's fans and fins as they spin up, the light strip flickering on
               at(M.gpu, 0, 0, 0);
               const s = smooth(p); A.set(1.4 - 2.3 * s, 0.35 - 0.2 * s, 1.55); camera.position.copy(A); look.set(0.75 - 1.9 * s, 0.05, 0);
-              const flick = t < 0.5 ? [0, 1, 0, 0.3, 1, 0, 1, 1, 0.5, 1][Math.min(9, Math.floor(t / 0.05))] : 1;
+              const flick = t < 0.5 ? [0, 1, 0.3, 1][Math.min(3, Math.floor(t / 0.13))] : 1;   // a power-on stutter, under 3 a second
               if (glow) glow.visible = flick > 0.4; for (const r of rings) r.visible = t > 0.25 && flick > 0.2;
             } else if (shot === 'inference') {
               // the chip turns in the middle; memory sticks streak past the lens, one near, one far; the card behind
@@ -539,7 +575,10 @@ export function run() {
       return {
         gl, resize,
         hubOnScreen() { v.copy(hub).project(camera); return [(v.x * 0.5 + 0.5) * w, (-v.y * 0.5 + 0.5) * h]; },
-        dispose() { renderer.dispose(); pmrem.dispose(); dustGeo.dispose(); },
+        dispose() {
+          scene.traverse((o) => { o.geometry?.dispose(); for (const m of [].concat(o.material || [])) { for (const v of Object.values(m)) if (v?.isTexture) v.dispose(); m.dispose(); } });
+          composer.dispose?.(); pmrem.dispose(); renderer.dispose(); renderer.forceContextLoss();
+        },
         render(t, dt) {
           const si0 = shotAt(t), shot = SHOTS[si0], lin = clamp01((t - CUTS[shotAt(t)]) / ((CUTS[shotAt(t) + 1] ?? END) - CUTS[shotAt(t)]));
           const p = shot === 'finale' ? lin : lin + 0.1 * Math.sin(lin * Math.PI * 2);   // a speed ramp: fast in, slow on the subject, fast out
@@ -580,10 +619,10 @@ export function run() {
           const su = sky.material.uniforms; su.time.value = t;
           for (const b of beams) { const ph = b.userData.ph; b.rotation.set(0.35 * Math.sin(t * 0.5 + ph), 0, 0.4 * Math.cos(t * 0.37 + ph * 1.7)); b.material.uniforms.amt.value = grid.material.opacity / 0.5; }
           let fl = 0; for (const [s0, bx, by] of [[0.7, 0.2, 0.35], [2.0, 0.62, 0.42], [3.3, 0.85, 0.3], [4.6, 0.38, 0.4], [5.9, 0.7, 0.38]]) {
-            const q = t - s0; if (q > 0 && q < 0.25) { fl = Math.max(fl, (q < 0.05 ? 1 : q < 0.08 ? 0.2 : q < 0.13 ? 0.8 : 0.8 * (1 - (q - 0.13) / 0.12))); su.bolt.value.set(bx, by); }
+            const q = t - s0; if (q > 0 && q < 0.25) { fl = Math.max(fl, Math.sin(Math.PI * Math.min(1, q / 0.25)) ** 2); su.bolt.value.set(bx, by); }   // one soft flare, not a strobe
           }
           su.flash.value = fl;
-          city.material.opacity = 0.22 * grid.material.opacity / 0.5; windows.material.opacity = (0.55 + 0.25 * Math.sin(t * 9)) * grid.material.opacity / 0.5;
+          const cf = grid.material.opacity / 0.5; skyline.visible = cf > 0.02; city.material.opacity = 0.4 * cf; windows.material.opacity = 0.9 * cf; beaconPts.material.opacity = (Math.floor(t * 2.5) % 2 ? 1 : 0.15) * cf;
           fu.rush.value = shot === 'finale' ? 0.6 * clamp01((t - SUCK) / 0.6) : 0; fu.fade.value = grid.material.opacity / 0.5;
           // a handheld drift, and the focus on what the shot is about
           camera.position.x += 0.018 * Math.sin(t * 1.7) + 0.008 * Math.sin(t * 4.3); camera.position.y += 0.014 * Math.sin(t * 2.3 + 1);
@@ -591,7 +630,8 @@ export function run() {
           bokeh.uniforms.focus.value = camera.position.distanceTo(subject.getWorldPosition(v)) * (shot === 'open' ? 0.75 : 1) * (0.45 + 0.55 * pull);
           bokeh.uniforms.aperture.value = (shot === 'research' ? 0.0011 : shot === 'finale' ? 0.0007 : 0.0016) * (1 + 1.5 * (1 - pull));
           film.uniforms.drain.value = 0.75 * frozen(t);
-          film.uniforms.time.value = (t < BT0 || t > BT1 ? t : BT0) * 60 % 100;   // even the grain holds still film.uniforms.split.value = 0.0015 + (shot === 'finale' ? 0.004 * clamp01((t - DIVE) / 0.8) : 0);
+          film.uniforms.time.value = (t < BT0 || t > BT1 ? t : BT0) * 60 % 100;   // even the grain holds still
+          film.uniforms.split.value = 0.0015 + (shot === 'finale' ? 0.004 * clamp01((t - DIVE) / 0.8) : 0);
           camera.lookAt(look);
           if (!k && si0 < 4 && t >= settleAt) { const sl = t - settleAt; camera.fov *= 1 - 0.1 * Math.exp(-sl * 6) * clamp01(sl / 0.04); }   // a punch-in as it locks
           const roll = k ? 0 : shot === 'inference' ? 0.1 - 0.16 * p : shot === 'efficiency' ? -0.08 + 0.14 * p : shot === 'research' ? 0.05 * Math.sin(p * 4) : 0;
@@ -636,11 +676,14 @@ export function run() {
       raf = requestAnimationFrame(draw); frame++;
       if (!cv.width || !cv.height) return;
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#040605'; ctx.fillRect(0, 0, cv.width, cv.height);
-      if (!ready) { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); if (Math.floor((now - start) / 200) % 2 === 0) { ctx.fillStyle = `rgba(${ORANGE},0.95)`; ctx.fillRect(w / 2 - 8, h / 2 - 14, 16, 28); } return; }
-      // the film runs at half speed; a skip goes straight to the break-through at full speed
+      if (!ready) {
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.font = `600 14px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = `rgba(${WHITE},${0.45 + 0.4 * clamp01((now - start) / 600)})`; ctx.fillText('Loading the intro', w / 2, h / 2);
+        return;
+      }
+      // the film runs at a third of real speed, and the shatter at the end at full speed
       const real = (now - t0) / 1000; let t = freeze ?? real / SLOW;
-      if (freeze == null && t > BREAK) t = BREAK + (t - BREAK) * SLOW;   // the shatter plays at full speed
-      if (skipAt !== Infinity) t = Math.max(t, BREAK + (real - skipAt));
+      if (freeze == null && t > BREAK) t = BREAK + (t - BREAK) * SLOW;
       if (t >= END) { finish(); return; }
       if (t >= BREAK && snap) { shatter(t); return; }
       const dt = freeze != null ? 0.016 : Math.min(0.05, (now - (last || now)) / 1000) / SLOW; last = now;
@@ -650,10 +693,9 @@ export function run() {
       const hit = t < 0.3 || t >= BREAK - 0.12;
       const slamHit = WORDS[shot] && since < 0.1 ? 1 - since / 0.1 : 0;
       const rattle = (hit ? 8 : 0) + 12 * dive + 14 * slamHit;
-      ctx.drawImage(ready.gl, (Math.random() - 0.5) * rattle * dpr, (Math.random() - 0.5) * rattle * dpr, cv.width, cv.height);
+      ctx.drawImage(ready.gl, Math.sin(real * 13.8) * 0.5 * rattle * dpr, Math.cos(real * 10.1) * 0.5 * rattle * dpr, cv.width, cv.height);   // a sway under 2.2 Hz
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       // anamorphic streaks: the frame squeezed to a few columns and stretched back, so bright things smear sideways
-      streak.width = 40; streak.height = Math.max(1, Math.round(h / 3));
       sctx.drawImage(ready.gl, 0, 0, streak.width, streak.height);
       ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = 0.16; ctx.imageSmoothingEnabled = true;
       ctx.drawImage(streak, 0, 0, w, h); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
@@ -666,7 +708,7 @@ export function run() {
       const surge = 0.12 + (si > 0 ? 0.5 * clamp01(1 - since / 0.35) : 0) + 1.6 * dive;
       ctx.globalCompositeOperation = 'lighter';
       for (let k = 0; k < 26; k++) {
-        const a = (k * 2.399 + Math.floor(t * 18) * 0.7) % 6.283, r0 = Math.hypot(w, h) * (0.22 + ((k * 0.37 + t * 1.9) % 0.5)), len = 40 + 220 * surge;
+        const a = (k * 2.399 + Math.floor(t * 6) * 0.7) % 6.283, r0 = Math.hypot(w, h) * (0.22 + ((k * 0.37 + t * 1.9) % 0.5)), len = 40 + 220 * surge;
         ctx.strokeStyle = `rgba(${k % 3 ? WHITE : ORANGE},${Math.min(0.5, 0.07 * surge)})`; ctx.lineWidth = 1 + (k % 2);
         ctx.beginPath(); ctx.moveTo(w / 2 + Math.cos(a) * r0, h / 2 + Math.sin(a) * r0); ctx.lineTo(w / 2 + Math.cos(a) * (r0 + len), h / 2 + Math.sin(a) * (r0 + len)); ctx.stroke();
       }
@@ -696,8 +738,8 @@ export function run() {
       if (WORDS[shot]) {
         const word = WORDS[shot], fs = Math.min(w * 0.15, h * 0.3);
         ctx.save(); ctx.font = `800 ${fs}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        const fit = Math.min(1, (w * 0.94) / ctx.measureText(word).width), text = scramble(word, clamp01(since / 0.28)), slam = 1 + 0.2 * clamp01(1 - since / 0.14);
-        ctx.translate(w / 2 + since * 18, narrow ? h * 0.82 : h * 0.84); ctx.scale(slam * fit, slam * fit);
+        const fit = Math.min(1, (w * (narrow ? 0.86 : 0.92)) / ctx.measureText(word).width), text = scramble(word, clamp01(since / 0.28)), slam = 1 + 0.2 * clamp01(1 - since / 0.14);
+        ctx.translate(w / 2 + since * (narrow ? 6 : 18), narrow ? h * 0.82 : h * 0.84); ctx.scale(slam * fit, slam * fit);
         ctx.globalCompositeOperation = 'lighter';
         if (since < 0.22) { ctx.fillStyle = `rgba(${PINK},0.5)`; ctx.fillText(text, -6, 0); ctx.fillStyle = `rgba(${CYAN},0.5)`; ctx.fillText(text, 6, 0); }
         ctx.lineWidth = 1.4; ctx.strokeStyle = `rgba(${ORANGE},0.8)`; ctx.strokeText(text, 0, 0);
@@ -706,10 +748,19 @@ export function run() {
       }
 
       // the lens dirt, lit by how bright the frame is
-      pctx.drawImage(ready.gl, 0, 0, 8, 5); const px8 = pctx.getImageData(0, 0, 8, 5).data; let lum = 0;
-      for (let i = 0; i < px8.length; i += 4) lum += (0.3 * px8[i] + 0.59 * px8[i + 1] + 0.11 * px8[i + 2]) / 255;
-      lum /= 40; const glare = clamp01((lum - 0.16) * 2.6);
+      if (frame % 6 === 0) {   // a GPU read-back, so only every 6th frame
+        pctx.drawImage(ready.gl, 0, 0, 8, 5); const px8 = pctx.getImageData(0, 0, 8, 5).data; let lum = 0;
+        for (let i = 0; i < px8.length; i += 4) lum += (0.3 * px8[i] + 0.59 * px8[i + 1] + 0.11 * px8[i + 2]) / 255;
+        glare = clamp01((lum / 40 - 0.16) * 2.6);
+      }
       if (glare > 0.01) { ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = glare; ctx.drawImage(dirt, 0, 0, w, h); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
+      // the work itself, as a readout in the top left while each shot holds: hipinfer against llama.cpp, the submodular
+      // pick, SubCache's eviction (every figure is the site's own, from hipinfer's and SubCache's results)
+      if (si >= 1 && si <= 3) {
+        // across the whole shot (about 3.7 s), crossfading at the cuts, so there's time to read it
+        const into = t - CUTS[si], left = CUTS[si + 1] - t, op = clamp01(into / 0.08) * clamp01(left / 0.08);
+        if (op > 0) readout(si, clamp01(into / (CUTS[si + 1] - CUTS[si])), op, narrow);
+      }
       // the HUD: corner brackets close in and lock onto the subject once it's built, with a crosshair and a sweep
       const lk = ready.lock(), ch = ready.changing();
       const leak = ch >= 0 ? Math.sin(Math.PI * ch) : t < 0.6 ? clamp01(1 - t / 0.6) * 0.7 : 0;
@@ -727,9 +778,10 @@ export function run() {
         // a reticle of fixed size on the middle of the subject (kept clear of the edges and the word), closing in to lock
         const S = Math.min(w, h) * 0.16 * (1 + 0.6 * (1 - easeOut(settled)));
         const mx = Math.min(w * 0.7, Math.max(w * 0.3, lk[0])), my = Math.min(h * 0.58, Math.max(h * 0.3, lk[1]));
-        const X0 = mx - S, Y0 = my - S, X1 = mx + S, Y1 = my + S;
+        const below = si >= 1 && si <= 3 ? h * (narrow ? 0.06 : 0.085) + (narrow ? 16 : 24) - 10 + panelH(narrow) + 12 : 0;
+        const myc = Math.max(my, below + S), X0 = mx - S, Y0 = myc - S, X1 = mx + S, Y1 = myc + S;
         {
-          const blink = settled < 1 ? (Math.floor(t * 40) % 2 ? 0.9 : 0.3) : 0.95, L = Math.min(34, (X1 - X0) * 0.2);
+          const blink = 0.5 + 0.45 * settled, L = Math.min(34, (X1 - X0) * 0.2);   // it brightens as it locks; no blinking
           ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 6;
           ctx.strokeStyle = `rgba(${settled < 1 ? WHITE : ORANGE},${blink})`; ctx.lineWidth = 2.5;
           ctx.beginPath();
@@ -758,7 +810,7 @@ export function run() {
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
         let prev = null;
         for (let i = 0; i < NF; i++) {
-          const z = 1 - ((i / NF + (t - DIVE) * 0.9) % 1), half = (M0 * 0.06) / Math.max(0.03, z), proj = (Math.sin(i * 91.7 + Math.floor(t * 30) * 13.1) * 0.5 + 0.5);
+          const z = 1 - ((i / NF + (t - DIVE) * 0.9) % 1), half = (M0 * 0.06) / Math.max(0.03, z), proj = (Math.sin(i * 91.7 + Math.floor(t * 6) * 13.1) * 0.5 + 0.5);
           const a = tz * (1 - z) * (z > 0.97 ? 0 : 1) * (proj < 0.15 ? 0.15 : 0.55 + 0.45 * proj);
           if (a <= 0.01 || half > Math.max(w, h)) { prev = null; continue; }
           const x0 = vx - half * 1.3, y0 = vy - half, x1 = vx + half * 1.3, y1 = vy + half;
@@ -814,26 +866,82 @@ export function run() {
         snap = document.createElement('canvas'); snap.width = cv.width; snap.height = cv.height; snap.getContext('2d').drawImage(cv, 0, 0);
         snapHub = ready.hubOnScreen(); root.classList.remove('intro-on');
       }
-      if (t >= BREAK - 0.12) { ctx.fillStyle = `rgba(255,236,220,${0.7 * clamp01((t - BREAK + 0.12) / 0.12)})`; ctx.fillRect(0, 0, w, h); }
+      if (t >= BREAK - 0.12) { ctx.fillStyle = `rgba(255,236,220,${0.3 * clamp01((t - BREAK + 0.12) / 0.12)})`; ctx.fillRect(0, 0, w, h); }
       // tearing on the cuts, and now and then between
-      if (hit || Math.random() < 0.025) {
+      const tst = Math.floor(performance.now() / 400), rs = (n) => { const v = Math.sin(n * 127.1 + tst * 311.7) * 43758.5453; return v - Math.floor(v); }, opening = t < 0.3;
+      if (opening || rs(1) < 0.1) {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        for (let i = 0; i < (hit ? 8 : 2); i++) { const y = Math.floor(Math.random() * cv.height), tall = Math.floor((3 + Math.random() * 34) * dpr), shove = (Math.random() - 0.5) * (hit ? 90 : 26) * dpr; ctx.drawImage(cv, 0, y, cv.width, tall, shove, y, cv.width, tall); }
+        for (let i = 0; i < (opening ? 6 : 2); i++) { const y = Math.floor(rs(i + 2) * cv.height), tall = Math.floor((3 + rs(i + 9) * 34) * dpr), shove = (rs(i + 17) - 0.5) * (opening ? 70 : 26) * dpr; ctx.drawImage(cv, 0, y, cv.width, tall, shove, y, cv.width, tall); }
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       }
-      ctx.fillStyle = 'rgba(0,0,0,0.14)'; for (let y = frame % 2; y < h; y += 3) ctx.fillRect(0, y, w, 1);
+      ctx.fillStyle = 'rgba(0,0,0,0.14)'; for (let y = 0; y < h; y += 3) ctx.fillRect(0, y, w, 1);   // still, not crawling
       // letterbox bars: in at the signal, open again as the camera dives through; the shot and a timecode in them
       const bar = h * (narrow ? 0.06 : 0.085) * smooth(clamp01(t / 0.5)) * (1 - smooth(clamp01((t - DIVE - 0.2) / 0.7)));
       if (bar > 0.5) {
         ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, bar); ctx.fillRect(0, h - bar, w, bar);
         ctx.font = `600 ${narrow ? 9 : 11}px ${FONT}`; ctx.textBaseline = 'middle'; ctx.fillStyle = 'rgba(201,212,221,0.7)';
-        const label = si === 0 ? 'AKASH DASARRAJU' : si < 4 ? `0${si}  ${WORDS[shot]}` : 'AKASH DASARRAJU';
+        const label = si === 0 ? 'AKASH DASARRAJU' : si < 4 ? `0${si}  ${KINDS[shot]}` : 'AKASH DASARRAJU';
         ctx.textAlign = 'left'; ctx.fillText(label, 18, bar / 2);
-        const f = Math.floor(t * 24) % 24, sec = Math.floor(t);
+        const rt = Math.min(t, BREAK) * SLOW, f = Math.floor(rt * 24) % 24, sec = Math.floor(rt);   // real time, not film time
         ctx.textAlign = 'right'; ctx.fillText(`00:00:${String(sec).padStart(2, '0')}:${String(f).padStart(2, '0')}`, w - 18, bar / 2);
         ctx.fillStyle = `rgba(${ORANGE},${Math.floor(t * 2) % 2 ? 0.9 : 0.25})`; ctx.beginPath(); ctx.arc(w - 18 - (narrow ? 78 : 96), bar / 2, 3.5, 0, 6.3); ctx.fill();
       }
-      if (t > 1 && t < DIVE) { ctx.font = `500 12px ${FONT}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillStyle = 'rgba(201,212,221,0.55)'; ctx.fillText('click or press any key to skip', w - 18, h - h * (narrow ? 0.06 : 0.085) - 10); }
+    };
+    const panelH = (narrow) => (narrow ? 132 : 156);
+    const readout = (si, p, op, narrow) => {
+      const bar = h * (narrow ? 0.06 : 0.085), x = narrow ? 16 : 24, y0 = bar + (narrow ? 16 : 24), W = Math.min(narrow ? w - 32 : 360, w - 32);
+      const s = narrow ? 12 : 15, big = narrow ? 20 : 26, hd = narrow ? 11 : 12;
+      const line = (txt, y, size = s, weight = 600, a = 0.9, col = WHITE, at = x) => { ctx.font = `${weight} ${size}px ${FONT}`; ctx.fillStyle = `rgba(${col},${a * op})`; ctx.fillText(txt, at, y); return ctx.measureText(txt).width; };
+      ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      const H = panelH(narrow);
+      ctx.fillStyle = `rgba(4,6,5,${0.8 * op})`; ctx.fillRect(x - 10, y0 - 10, W + 20, H);
+      ctx.fillStyle = `rgba(${CYAN},${0.85 * op})`; ctx.fillRect(x - 10, y0 - 10, 2, H);
+      if (si === 1) {
+        // a decode race over the same quarter second, at hipinfer's and llama.cpp's measured per-token times
+        line('HIPINFER  ·  TINYLLAMA  ·  RTX 2080 TI', y0, hd, 700, 0.8);
+        ctx.textAlign = 'right'; line('tokens in 0.25 s', y0, hd, 500, 0.65, WHITE, x + W); ctx.textAlign = 'left';
+        const ms = p * 250;
+        [['hipinfer', 4.14, CYAN], ['llama.cpp', 4.77, WHITE]].forEach(([name, per, col], k) => {
+          const y = y0 + (narrow ? 28 : 34) + k * (narrow ? 44 : 52), n = Math.floor(ms / per);
+          const nw = line(name, y, s, 700, 0.95); line(`${per.toFixed(2)} ms per token`, y, s, 500, 0.65, WHITE, x + nw + 10);
+          ctx.textAlign = 'right'; line(String(n), y - (big - s) + 2, big, 700, 1, col, x + W); ctx.textAlign = 'left';
+          ctx.fillStyle = `rgba(${col},${0.22 * op})`; ctx.fillRect(x, y + s + 8, W, 3);
+          ctx.fillStyle = `rgba(${col},${0.95 * op})`; ctx.fillRect(x, y + s + 8, W * Math.min(1, n / Math.floor(250 / 4.14)), 3);
+        });
+      } else if (si === 2) {
+        // the submodular set loss: an image pulls several matching captions in as one set and pushes hard negatives out
+        line('SUBMODULAR SET LOSS  ·  CARAML LAB', y0, hd, 700, 0.8);
+        line('several positives and hard negatives at once', y0 + (narrow ? 20 : 24), s, 500, 0.9);
+        const top = y0 + (narrow ? 44 : 52), vh = narrow ? 44 : 52, cx = x + W * 0.5, cy = top + vh / 2, e = smooth(clamp01((p - 0.08) / 0.55));
+        const sq = (px, py, sz, fill, col, a) => { ctx[fill ? 'fillStyle' : 'strokeStyle'] = `rgba(${col},${a * op})`; ctx.lineWidth = 1.4; ctx[fill ? 'fillRect' : 'strokeRect'](px - sz / 2, py - sz / 2, sz, sz); };
+        const pos = [0.5, 2.1, 3.6, 5.1].map((a) => [Math.cos(a), Math.sin(a)]), neg = [0, 1.25, 2.5, 3.8, 5.0].map((a) => [Math.cos(a + 0.6), Math.sin(a + 0.6)]);
+        for (const [dx, dy] of neg) { const r = W * (0.16 + 0.27 * e); sq(cx + dx * r, cy + dy * Math.min(r, vh * 0.48), 8, false, PINK, 0.75); }
+        const pr = W * (0.3 - 0.22 * e);
+        for (const [dx, dy] of pos) {
+          const px = cx + dx * pr, py = cy + dy * Math.min(pr, vh * 0.42);
+          ctx.strokeStyle = `rgba(${CYAN},${0.35 * e * op})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke();
+          sq(px, py, 8, true, CYAN, 1);
+        }
+        if (e > 0.6) { ctx.strokeStyle = `rgba(${CYAN},${(e - 0.6) * 2 * op})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, W * 0.08 + 8, 0, 6.283); ctx.stroke(); }   // one set
+        sq(cx, cy, 13, false, WHITE, 1); sq(cx, cy, 5, true, WHITE, 0.9);                                                                   // the image
+        const ry = top + vh + (narrow ? 8 : 10), rw = line('+3% over C2LIP', ry, s + 1, 700, e > 0.5 ? 1 : 0.35, CYAN);
+        line('SugarCrepe  ·  targeting CVPR', ry, s, 500, 0.65, WHITE, x + rw + 10);
+      } else {
+        // SubCache: a 32-slot cache, filled, then three quarters evicted
+        line('SUBCACHE  ·  KV-CACHE EVICTION', y0, hd, 700, 0.8);
+        line('keep a quarter of the cache', y0 + (narrow ? 20 : 24), s, 500, 0.9);
+        const cols = 16, cw = (W - (cols - 1) * 3) / cols, top = y0 + (narrow ? 46 : 54), keep = new Set([0, 5, 9, 14, 17, 22, 26, 31]);
+        for (let i = 0; i < 32; i++) {
+          const r = Math.floor(i / cols), c = i % cols, filled = p > (i / 32) * 0.3, gone = !keep.has(i) && p > 0.32 + (((i * 7) % 32) / 32) * 0.13;
+          const kept = keep.has(i) && p > 0.32;
+          ctx.fillStyle = !filled ? `rgba(${WHITE},${0.08 * op})` : gone ? `rgba(${WHITE},${0.1 * op})` : `rgba(${kept ? CYAN : WHITE},${(kept ? 1 : 0.6) * op})`;
+          ctx.fillRect(x + c * (cw + 3), top + r * 15, cw, 11);
+        }
+        // the result, as soon as the eviction is done
+        const rr = clamp01((p - 0.45) / 0.08), ry = top + (narrow ? 38 : 42);
+        const rw = line('3× the requests', ry, s + 1, 700, rr, CYAN); line('2.8× throughput', ry, s + 1, 700, rr, WHITE, x + rw + 16);
+      }
+      ctx.restore();
     };
     // the way out: the last frame breaks into tiles that fly out from the fan toward the lens, edges burning, and the
     // page is there behind them
@@ -853,7 +961,7 @@ export function run() {
         if (q > 0) { ctx.strokeStyle = `rgba(${r < 0.3 ? CYAN : ORANGE},${0.9 * (1 - q)})`; ctx.lineWidth = 1.2; ctx.strokeRect(-tw / 2, -th / 2, tw, th); }
         ctx.restore();
       }
-      if (tt < 0.18) { ctx.fillStyle = `rgba(255,236,220,${0.75 * (1 - tt / 0.18)})`; ctx.fillRect(0, 0, w, h); }
+      if (tt < 0.18) { ctx.fillStyle = `rgba(255,236,220,${0.3 * (1 - tt / 0.18)})`; ctx.fillRect(0, 0, w, h); }
     };
     raf = requestAnimationFrame(draw);
 
