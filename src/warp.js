@@ -59,9 +59,9 @@ export function enter(canvas, from, lines, MIN = 1.2) {
       const k = clamp01((t - 0.65) / 0.7), k2 = clamp01((t - 0.95) / 0.7);
       if (frame % 2 === 0) { words[0] = scramble(lines[0], k); words[1] = scramble(lines[1], k2); }
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.font = `700 ${Math.min(52, w / 11)}px "JetBrains Mono", monospace`; ctx.fillStyle = `rgba(255, 244, 232, ${a})`;
+      ctx.font = `700 ${Math.min(52, w / 11)}px "Bricolage Grotesque", sans-serif`; ctx.fillStyle = `rgba(255, 244, 232, ${a})`;
       ctx.shadowColor = `rgba(${ORANGE}, 0.85)`; ctx.shadowBlur = 22; ctx.fillText(words[0], w / 2, hz - 120); ctx.shadowBlur = 0;
-      ctx.font = `500 ${Math.min(15, w / 28)}px "JetBrains Mono", monospace`; ctx.fillStyle = `rgba(${ORANGE}, ${a})`; ctx.fillText(words[1], w / 2, hz - 74);
+      ctx.font = `500 ${Math.min(15, w / 28)}px "Bricolage Grotesque", sans-serif`; ctx.fillStyle = `rgba(${ORANGE}, ${a})`; ctx.fillText(words[1], w / 2, hz - 74);
       // a progress strip of cells under the words
       const n = 16, filled = Math.min(n, Math.floor(clamp01((t - 0.8) / 1.0) * n));
       for (let i = 0; i < n; i++) { ctx.fillStyle = i < filled ? `rgba(${ORANGE}, ${a})` : `rgba(95, 209, 190, ${0.18 * a})`; ctx.fillRect(w / 2 - n * 7 + i * 14, hz - 44, 10, 4); }

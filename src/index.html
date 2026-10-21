@@ -4,19 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Akash Dasarraju</title>
-  <meta name="description" content="Akash Dasarraju, computer science at UT Dallas. ML systems and LLM inference: KV-cache compression, GPU kernels, and submodular methods for data-efficient learning in the CARAML Lab. Organizer at HackUTD.">
+  <meta name="description" content="Akash Dasarraju, computer science at UT Dallas. Low-level GPU kernels and ML systems for LLM inference: hipinfer, an inference engine with every kernel written from scratch, SubCache, and submodular ML research in the CARAML Lab. Organizer at HackUTD.">
   <meta name="theme-color" content="#0b1613">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Akash Dasarraju">
-  <meta property="og:description" content="ML systems and LLM inference at UT Dallas: a résumé you can walk into. KV-cache compression, HIP kernels, submodular data selection, HackUTD.">
+  <meta property="og:description" content="Low-level GPU kernels and ML systems at UT Dallas: a résumé you can walk into. An LLM inference engine written from scratch in HIP, KV-cache compression, submodular ML research, HackUTD.">
   <meta property="og:image" content="https://sky1219.github.io/og.jpg">
   <meta property="og:url" content="https://sky1219.github.io/">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 20'%3E%3Cpath d='M8 19s6-6.2 6-11A6 6 0 0 0 2 8c0 4.8 6 11 6 11Z' fill='%23e0650f'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Overpass:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script>try { const t = localStorage.getItem('theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch {}</script>
+  <!-- the intro (src/boot.js): once a visit, not with reduced motion, not when arriving straight into a tour. The class
+       covers the page until it starts; if the script never runs, the cover lifts by itself -->
+  <script>try { const r = document.documentElement; if ((!sessionStorage.getItem('booted') || /[?&]intro=/.test(location.search)) && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)').matches) { sessionStorage.setItem('booted', '1'); r.classList.add('intro-on'); setTimeout(() => r.classList.remove('intro-on'), 25000); } } catch {}</script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -47,14 +50,13 @@
     <div class="hero-text">
       <h1><span>Akash</span> <span>Dasarraju</span></h1>
       <p class="ask">Looking for a summer 2027 internship in ML research or ML systems.</p>
-      <p class="proof"><span><b>4.13 ms</b>/token, vs llama.cpp&rsquo;s 4.77</span><span><b>3&times;</b> the requests at &frac14; the KV cache</span><span><b>2</b> papers in preparation</span></p>
       <nav class="contact" aria-label="Contact">
         <a class="icon-link" href="mailto:dasarrajuakash@gmail.com" aria-label="Email dasarrajuakash@gmail.com" title="dasarrajuakash@gmail.com"><svg aria-hidden="true"><use href="#i-mail"/></svg></a>
         <a class="icon-link" href="https://github.com/Sky1219" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg aria-hidden="true"><use href="#i-github"/></svg></a>
         <a class="icon-link" href="https://www.linkedin.com/in/akash-dasarraju-143520240" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn"><svg aria-hidden="true"><use href="#i-linkedin"/></svg></a>
         <a class="cv-link" href="Akash_Dasarraju_Resume.pdf" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-doc"/></svg>Résumé (PDF)</a>
       </nav>
-      <p class="intro">I build fast LLM inference and research data-efficient ML. My inference engine, <a class="place" href="#hipinfer" data-tour="hipinfer">hipinfer<svg><use href="#i-pin"/></svg></a>, decodes faster than llama.cpp on all 5 models I tested, and in UT Dallas&rsquo;s CARAML Lab I work on two submodular ML papers in preparation, on <a class="place" href="#subset" data-tour="subset">data selection<svg><use href="#i-pin"/></svg></a> and <a class="place" href="#memory" data-tour="memory">agent memory<svg><use href="#i-pin"/></svg></a>. I study computer science at UT Dallas and help organize HackUTD, a 1,300-person hackathon.</p>
+      <p class="intro">I write low-level GPU kernels and ML systems for LLM inference. My engine, <a class="place" href="#hipinfer" data-tour="hipinfer">hipinfer<svg><use href="#i-pin"/></svg></a>, has every kernel written from scratch and beats llama.cpp at batch-1 decode on every model I tested, on three GPUs. In UT Dallas&rsquo;s CARAML Lab I work on two submodular ML papers in preparation, on <a class="place" href="#subset" data-tour="subset">learning from less<svg><use href="#i-pin"/></svg></a> and <a class="place" href="#memory" data-tour="memory">agent memory<svg><use href="#i-pin"/></svg></a>. I study computer science at UT Dallas and help organize HackUTD, a 1,300-person hackathon.</p>
       <p class="how"><svg aria-hidden="true"><use href="#i-pin"/></svg><span>Orange links take you into the room where that work happens, each with a small demo you can play.<span class="hover-only"> Hover one first for a look at its screen.</span></span></p>
     </div>
     <figure class="plan" aria-label="UT Dallas at night, with the three places on this page">
@@ -76,16 +78,19 @@
     <div class="cards">
       <article class="card" data-card="hipinfer" data-reveal>
         <div class="card-top">
-          <div class="shot"><canvas aria-hidden="true"></canvas><p class="shot-stat" aria-hidden="true">4.13 ms<small>per token, vs llama.cpp&rsquo;s 4.77</small></p></div>
-          <div class="card-body"><h3><a class="card-link" href="#hipinfer" data-tour="hipinfer" aria-describedby="go-hipinfer">hipinfer</a></h3><p>LLM inference engine in HIP. The fastest single-request decoder on all 5 models I tested: <b>4.13 ms per token</b>, against llama.cpp&rsquo;s 4.77.</p>
+          <div class="shot"><canvas aria-hidden="true"></canvas><p class="shot-stat" aria-hidden="true">4.14 ms<small>per token, vs llama.cpp&rsquo;s 4.77</small></p></div>
+          <div class="card-body"><h3><a class="card-link" href="#hipinfer" data-tour="hipinfer" aria-describedby="go-hipinfer">hipinfer</a></h3><p>LLM inference engine in HIP, every kernel written from scratch. Beats llama.cpp at batch-1 decode on every model I tested, on three GPUs: <b>4.14 ms per token</b> against 4.77 on a 2080 Ti.</p>
             <p class="card-go" id="go-hipinfer"><svg aria-hidden="true"><use href="#i-pin"/></svg>Play: tune TinyLlama to beat the memory wall</p></div>
         </div>
         <details class="card-more"><summary>Details<span class="sr-only"> on hipinfer</span></summary>
           <p class="meta"><span>C++, HIP/CUDA. <a href="https://github.com/Sky1219/hipinfer" target="_blank" rel="noopener">GitHub</a>, <a href="https://sky1219.github.io/hipinfer/" target="_blank" rel="noopener">site</a>, <a href="https://colab.research.google.com/github/Sky1219/hipinfer/blob/main/hipinfer_colab.ipynb" target="_blank" rel="noopener">Colab</a></span><time>2026 to present</time></p>
           <ul>
-            <li>Reached 92 to 95% of cuBLAS speed on Turing with a from-scratch prefill GEMM, in an LLM inference engine I built in HIP, one source for NVIDIA and AMD GPUs. Its WikiText-2 perplexity is within 0.003% of Hugging Face's.</li>
-            <li>Fastest single-request FP16 decode on all 5 Llama and Qwen models I tested on an RTX 2080 Ti: 6 to 17% faster than llama.cpp on 1B to 3B models, at 81 to 87% of the memory-bandwidth limit (TinyLlama: 4.13 ms per token, against llama.cpp's 4.77). It also beat vLLM on an RTX A6000.</li>
-            <li>Added multi-GPU tensor parallelism with a custom all-reduce 1.5x faster than NCCL on small messages: 1.55 to 1.75x faster decode on two RTX 2080 Tis, and room for 7B to 8B models (Llama-3.1-8B, Mistral-7B) too large for one card.</li>
+            <li>Built an LLM inference engine in HIP with every kernel written from scratch (no cuBLAS or vendor libraries), supporting dense and MoE models, multi-GPU tensor parallelism, int8 weights, speculative decoding and KV-cache eviction. Tested on NVIDIA; compiles for AMD.</li>
+            <li>Verified against Hugging Face: WikiText-2 perplexity within 0.01% on every model, 99.4 to 99.9% top-1 token agreement, a greedy token-match gate, and kernel tests against PyTorch.</li>
+            <li>Beat llama.cpp at single-request decode on every model tested on 3 GPUs (5 to 16% on 1B to 3B models on a 2080 Ti, at 81 to 87% of memory bandwidth); 23 to 31% faster than vLLM on an A100; GEMM at 92 to 95% of cuBLAS on Turing.</li>
+            <li>1.5 to 1.7x faster decode on two RTX 2080 Tis with tensor parallelism and a custom all-reduce 1.4x faster than NCCL on small messages; runs 7B to 8B models (Llama-3.1-8B, Mistral-7B) too large for one card.</li>
+            <li>1.6 to 1.8x faster decode than fp16 with int8 weights (16 to 26% faster than llama.cpp&rsquo;s Q8_0, for 0.04 to 0.23% more perplexity).</li>
+            <li>Up to 1.39x faster decode with speculative decoding (1B draft, 3B target), its output token-for-token identical to plain greedy decoding in all 105 test runs on each of 2 GPUs.</li>
           </ul>
         </details>
       </article>
@@ -98,9 +103,9 @@
         <details class="card-more"><summary>Details<span class="sr-only"> on SubCache</span></summary>
           <p class="meta"><span>Python, PyTorch. <a href="https://github.com/Sky1219/SubCache" target="_blank" rel="noopener">GitHub</a>, <a href="https://sky1219.github.io/SubCache/" target="_blank" rel="noopener">site</a></span><time>2026</time></p>
           <ul>
-            <li>Built an open-source KV-cache compression benchmark. On long coding-agent sessions, keeping 25% of the cache fit 3x more requests on one GPU and raised throughput 2.8x (64% lower cost per token), for a 5% rise in perplexity.</li>
-            <li>Benchmarked 9 eviction policies, including the published baselines H2O and R-KV, on real coding-agent sessions, then on LongBench and needle-in-a-haystack retrieval with Llama-3.1-8B and on MATH-500 with DeepSeek-R1-Distill-Qwen-1.5B.</li>
-            <li>Designed a submodular eviction method that beat H2O by 1.1 to 2.5% on repetitive agent sessions, then profiled it and found the bottleneck: at a 12.5% budget, choosing what to evict took 71% of decode time, against under 1% for H2O.</li>
+            <li>2.8x higher throughput from keeping 25% of the KV cache on long coding-agent sessions (3x more requests per GPU, for a 5% rise in perplexity), measured in my open-source compression benchmark.</li>
+            <li>Benchmarked 9 eviction policies against H2O and R-KV on agent sessions, LongBench, needle-in-a-haystack retrieval and MATH-500.</li>
+            <li>My submodular eviction method beat H2O by 1.1 to 2.5% on repetitive agent sessions. Profiling showed selection took 71% of decode time, so I wrote GPU kernels for it in hipinfer, 6 to 25x faster than PyTorch.</li>
           </ul>
         </details>
       </article>
@@ -123,18 +128,18 @@
       <div class="lab-note" data-reveal>
         <h2 id="h-research" class="work-h">Research</h2>
         <p class="lab-meta">CARAML Lab, Prof. Rishabh Iyer<br>2026 to present</p>
-        <p>A submodular ML lab at UT Dallas. I build and run the experiments for two papers in preparation, guided by PhD students.</p>
+        <p>A submodular ML lab at UT Dallas. I implement and run the experiments for two papers in preparation, with PhD mentors.</p>
       </div>
       <article class="card" data-card="subset" data-reveal>
         <div class="card-top">
-          <div class="shot"><canvas aria-hidden="true"></canvas><p class="shot-stat" aria-hidden="true">Targeting CVPR<small>paper in preparation, not yet submitted</small></p></div>
-          <div class="card-body"><h3><a class="card-link" href="#subset" data-tour="subset" aria-describedby="go-subset">Submodular data selection</a></h3><p>Picking the few examples that teach a model the most, and turning that into training losses for CLIP-style models. <b>Paper targeting CVPR.</b></p>
+          <div class="shot"><canvas aria-hidden="true"></canvas><p class="shot-stat" aria-hidden="true">+3% vs C2LIP<small>SugarCrepe, 81k COCO pairs · targeting CVPR</small></p></div>
+          <div class="card-body"><h3><a class="card-link" href="#subset" data-tour="subset" aria-describedby="go-subset">Submodular learning from less</a></h3><p>A submodular set loss that learns from several positives and hard negatives at once beat C2LIP, a published state-of-the-art CLIP, by <b>3%</b> on fine-grained reasoning. <b>Paper targeting CVPR.</b></p>
             <p class="card-go" id="go-subset"><svg aria-hidden="true"><use href="#i-pin"/></svg>Play: teach a model with 4 sentences</p></div>
         </div>
-        <details class="card-more"><summary>Details<span class="sr-only"> on submodular data selection</span></summary>
+        <details class="card-more"><summary>Details<span class="sr-only"> on submodular learning from less</span></summary>
           <p class="meta"><span>Research, CARAML Lab</span><time>2026 to present</time></p>
           <ul>
-            <li>Developing submodular training losses that use hard negatives to teach CLIP-style vision-language models which attributes belong to which objects. Trained and evaluated several loss functions and generated training data. Targeting CVPR.</li>
+            <li>Beat C2LIP, a published state-of-the-art fine-tuned CLIP model, by 3% on fine-grained object&ndash;attribute reasoning (SugarCrepe, SugarCrepe++) with only 81k COCO image&ndash;caption sets, by implementing a submodular set loss that learns from several positives and hard negatives at once. Targeting CVPR.</li>
           </ul>
         </details>
       </article>
@@ -164,8 +169,9 @@
           <p class="meta"><span>UT Dallas</span><time>2026 to present</time></p>
         </div>
         <ul>
-          <li>Help organize a <a class="place" href="#hackutd" data-tour="hackutd">1,300-participant hackathon<svg><use href="#i-pin"/></svg></a>. I made our interactive 3D campus map (three.js) and the 3D modeling and animation for our interactive website.</li>
-          <li>Tripled average workshop attendance, from 30 to over 100, by redesigning topic selection across <a class="place" href="#teaching" data-tour="teaching">10 AI workshops<svg><use href="#i-pin"/></svg></a>, leading 5 and assisting 5.</li>
+          <li>Help organize a <a class="place" href="#hackutd" data-tour="hackutd">1,300-person hackathon<svg><use href="#i-pin"/></svg></a>, leading 10+ volunteers.</li>
+          <li>Built a RAG and MCP Discord bot that answers near 100% of questions and cut pre-event questions to organizers by 80% against prior years, and a 3D campus map (three.js) used by hundreds.</li>
+          <li>Led 5 <a class="place" href="#teaching" data-tour="teaching">AI workshops<svg><use href="#i-pin"/></svg></a>, tripling turnout from 30 to over 100.</li>
         </ul>
       </article>
     </section>
@@ -178,8 +184,8 @@
           <p class="meta"><span>The University of Texas at Dallas</span><time>2025 to 2029 (expected)</time></p>
         </div>
         <ul>
-          <li>GPA 3.84. National Merit Finalist. ACT 36.</li>
-          <li>Coursework: Data Structures and Algorithms (Honors), Statistics for ML (Honors), Linear Algebra, Computer Architecture.</li>
+          <li>GPA 3.62. National Merit Finalist. ACT 36.</li>
+          <li>Coursework: Data Structures, Probability and Statistics, Computer Architecture (honors); Linear Algebra; Mathematics of Computing (senior level).</li>
         </ul>
       </article>
     </section>
@@ -187,9 +193,8 @@
     <section aria-labelledby="h-skills">
       <h2 id="h-skills">Skills</h2>
       <dl class="skills" data-reveal>
-        <dt>GPUs and frameworks</dt><dd>NVIDIA Turing and Ampere; CUDA, HIP/ROCm, NCCL, PyTorch, vLLM, Hugging Face</dd>
-        <dt>Languages</dt><dd>Python, C++ (CUDA/HIP), Java</dd>
-        <dt>Focus</dt><dd>Submodular optimization, data-efficient ML, GPU kernels, LLM inference, tensor parallelism</dd>
+        <dt>Languages and tools</dt><dd>Python, C++, Java; CUDA, HIP/ROCm, NCCL, PyTorch, vLLM, Hugging Face</dd>
+        <dt>GPUs</dt><dd>NVIDIA Turing and Ampere (RTX 2080 Ti, RTX A6000, A100)</dd>
       </dl>
     </section>
   </div>

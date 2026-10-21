@@ -7,7 +7,7 @@ export const C = {
   orange: '#ff9a3c', blue: '#5aa9ff', cyan: '#4ee6ff', green: '#4fd47a', red: '#ff5f6d', yellow: '#e6c45a', purple: '#b38cff', pink: '#ff7ab6',
 };
 export const MONO = '"JetBrains Mono", ui-monospace, Menlo, monospace';
-export const SANS = '"Schibsted Grotesk", system-ui, sans-serif';
+export const SANS = '"Bricolage Grotesque", system-ui, sans-serif';
 export const CLASS = ['#5aa9ff', '#ff9a3c', '#4fd47a', '#b38cff', '#ff7ab6', '#e6c45a'];
 
 export function rng(seed) {

@@ -2,7 +2,7 @@
 // own device, and since every token reads every weight, bytes / time is the memory bandwidth their browser got.
 // Then a planner for TinyLlama-1.1B on the RTX 2080 Ti: pick the weight precision, the batch, and whether the
 // kernels are fused and the GEMV runs at full occupancy, and a roofline model says the time per token. The model is calibrated to the
-// measured 4.13 ms (fp16, batch 1, fused, full occupancy) and lands near the measured batches (7,553 tok/s at 64);
+// measured 4.14 ms (fp16, batch 1, fused, full occupancy) and lands near the measured batches (7,553 tok/s at 64);
 // the challenges are about where the time goes.
 import { C, text, rect, line, pane, clamp, SANS, MONO } from '../screens/kit.js';
 import { engine, ask, encode } from '../llm/engine.js';
@@ -27,7 +27,7 @@ export function step({ prec, batch, fused, splitk }) {      // splitk: the occup
 
 const GOALS = [
   { id: 'match', title: 'Match hipinfer', how: 'fp16 at batch 1, within 4.2 ms per token', ok: (c, r) => c.prec === 'fp16' && c.batch === 1 && r.ms <= 4.2,
-    why: 'Fusing cuts the launches and a full-occupancy GEMV keeps every SM reading; together they take fp16 from about 7 ms to 4.13.' },
+    why: 'Fusing cuts the launches and a full-occupancy GEMV keeps every SM reading; together they take fp16 from about 7 ms to 4.14.' },
   { id: 'floor', title: `Beat the ${FLOOR.toFixed(2)} ms floor`, how: `batch 1, under ${FLOOR.toFixed(2)} ms per token`, ok: (c, r) => c.batch === 1 && r.ms < FLOOR,
     why: 'No kernel trick gets under the floor: it is the time to read the weights once. Only reading fewer bytes does, which is what quantizing to int8 or int4 is.' },
   { id: 'crowd', title: 'Serve a crowd', how: 'at least 3,000 tokens/s in total, every user under 20 ms per token', ok: (c, r) => r.tps >= 3000 && r.ms < 20,
@@ -43,7 +43,7 @@ export function mount(root, screen) {
   const seg = (key, opts, label) => `<p class="g-label">${label}</p><div class="g-row g-seg" data-key="${key}">${opts.map((o) => `<button type="button" class="g-ghost" data-v="${o}">${o}</button>`).join('')}</div>`;
   root.innerHTML = `
     ${about('How fast one token can be generated, and what limits it. Every token has to read every weight from memory, so at batch 1 the time is set by memory bandwidth, not by math. You first measure your own device, then plan TinyLlama-1.1B on the RTX 2080 Ti hipinfer runs on, against four challenges.',
-      'This is the problem hipinfer is built around. Its kernels are fused and its GEMV keeps every SM reading, so TinyLlama decodes at 4.13 ms, 82% of the bandwidth floor and 1.15x faster than llama.cpp on the same card. The planner is a roofline model calibrated to that measurement.')}
+      'This is the problem hipinfer is built around. Its kernels are fused and its GEMV keeps every SM reading, so TinyLlama decodes at 4.14 ms, 82% of the bandwidth floor and 1.15x faster than llama.cpp on the same card. The planner is a roofline model calibrated to that measurement.')}
     <div class="g-row"><button type="button" class="g-btn g-measure">Measure this device</button></div>
     <div class="g-dev" aria-live="polite"></div>
     ${seg('prec', Object.keys(PRECISION), 'Weight precision')}
@@ -113,7 +113,7 @@ function draw(sc, ctx) {
   rect(ctx, bx, tb.y + 146, Xm(r.ms) - bx, 20, { fill: r.ms < FLOOR ? C.green : C.orange, r: 3 });
   text(ctx, `${r.ms.toFixed(2)} ms per token`, bx, tb.y + 214, { size: 22, font: SANS, weight: '800', color: r.ms < FLOOR ? C.green : C.ink });
   text(ctx, `bound by ${r.bound}`, bx, tb.y + 240, { size: 13, color: r.bound === 'memory' ? C.yellow : C.purple });
-  text(ctx, 'hipinfer, measured: 4.13 ms at fp16, batch 1', bx, tb.y + tb.h - 8, { size: 11, color: C.dim });
+  text(ctx, 'hipinfer, measured: 4.14 ms at fp16, batch 1', bx, tb.y + tb.h - 8, { size: 11, color: C.dim });
   // this device, and the challenges
   const db = pane(ctx, 8, 402, 610, h - 410, 'this device: DistilGPT-2, in the browser', { accent: C.green });
   if (S.dev) {

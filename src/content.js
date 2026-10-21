@@ -21,7 +21,7 @@ export const TOURS = {
         note: 'Covering all four subjects cut the model\'s surprise at the unseen passage from 194 (a random 4) to about 20. The random draw is different every run.',
       },
     },
-    title: 'Submodular data selection',
+    title: 'Submodular learning from less',
     lede: 'A model trained on a carefully chosen part of a dataset can do nearly as well as one trained on all of it. Submodular functions give a way to score which part to choose.',
     steps: [
       'Every example becomes a point, placed by its embedding.',
@@ -31,7 +31,7 @@ export const TOURS = {
       'Other submodular functions pick differently. Graph cut favors central, representative examples, and log-determinant favors diverse ones.',
       'Train on the subset and compare it with a random one of the same size.',
     ],
-    role: 'In Prof. Rishabh Iyer\'s CARAML Lab I work on submodular methods for learning from less, and the game here is that idea at its simplest: choosing the few examples that teach the most. My current paper turns it into a training loss with hard negatives for CLIP-style vision-language models, targeting CVPR; I trained and evaluated the losses and generated the training data.',
+    role: 'In Prof. Rishabh Iyer\'s CARAML Lab I work on submodular methods for learning from less, and the game here is that idea at its simplest: choosing the few examples that teach the most. My current paper turns it into a submodular set loss that learns from several positives and hard negatives at once, and it beat C2LIP, a published state-of-the-art fine-tuned CLIP model, by 3% on SugarCrepe and SugarCrepe++ with only 81k COCO image-caption sets (targeting CVPR).',
   },
   memory: {
     place: 'lab', visual: 'memory', kicker: 'Research, CARAML Lab · paper targeting ICML',
@@ -77,7 +77,7 @@ export const TOURS = {
       'The submodular policy is facility location over the keys, weighted by the attention each key has received. It keeps the set that best covers what is attended to, so near-duplicate keys don\'t crowd out the rest.',
       'Compare at the same budget. In SubCache I measure output quality, memory, throughput and latency during decoding.',
     ],
-    role: 'SubCache is my open-source KV-cache compression benchmark: on long coding-agent sessions, keeping a quarter of the cache fit 3x the requests on one GPU for a 5% rise in perplexity. My submodular policy beat H2O by 1.1 to 2.5% on repetitive sessions, but at a 12.5% budget choosing what to evict took 71% of decode time.',
+    role: 'SubCache is my open-source KV-cache compression benchmark: on long coding-agent sessions, keeping a quarter of the cache fit 3x the requests on one GPU for a 5% rise in perplexity. My submodular policy beat H2O by 1.1 to 2.5% on repetitive sessions; choosing what to evict took 71% of decode time, so I wrote GPU kernels for it in hipinfer, 6 to 25x faster than PyTorch.',
   },
   mnk: {
     place: 'lab', visual: 'mnk', kicker: 'Personal project \u00b7 2026',
@@ -109,21 +109,21 @@ export const TOURS = {
       pitch: 'First, time how fast your own device generates text with the small model, and see how much memory bandwidth your browser gets. Then plan TinyLlama on the RTX 2080 Ti: choose the weight precision, how many users to serve at once, and which of hipinfer\'s kernel tricks to use, and try to match hipinfer, beat the 3.39 ms floor, serve a crowd and hit the compute wall.',
       recorded: {
         head: ['TinyLlama, fp16, batch 1', 'per token', 'tokens/s'],
-        rows: [['Plain kernels', '6.99 ms', '143'], ['Fused + full-occupancy GEMV', '4.14 ms', '242'], ['hipinfer, measured', '4.13 ms', '242']],
+        rows: [['Plain kernels', '6.99 ms', '143'], ['Fused + full-occupancy GEMV', '4.14 ms', '242'], ['hipinfer, measured', '4.14 ms', '242']],
         best: 2,
-        note: 'The planner, calibrated to hipinfer, lands within 0.01 ms of the real engine; the bandwidth floor is 3.39 ms. On one laptop browser, DistilGPT-2 itself ran at 85 ms per token, about 1 GB/s.',
+        note: 'The planner, calibrated to hipinfer, lands on the real engine\'s 4.14 ms; the bandwidth floor is 3.39 ms. On one laptop browser, DistilGPT-2 itself ran at 85 ms per token, about 1 GB/s.',
       },
     },
     title: 'hipinfer: an inference engine in HIP',
     lede: 'When a language model writes one token at a time, the GPU spends most of its time waiting for memory rather than doing math. hipinfer is the LLM inference engine I built in HIP, one source for NVIDIA and AMD GPUs, and on an RTX 2080 Ti it decodes models of 1B parameters and up at 81 to 87% of that memory speed limit.',
     steps: [
-      'Every TinyLlama token reads about 2.1 GB: every weight but the embedding table, plus the KV cache. At 616 GB/s that takes 3.39 ms, so no engine on this card can beat 3.39 ms per token. hipinfer takes 4.13.',
+      'Every TinyLlama token reads about 2.1 GB: every weight but the embedding table, plus the KV cache. At 616 GB/s that takes 3.39 ms, so no engine on this card can beat 3.39 ms per token. hipinfer takes 4.14.',
       'Fuse the small kernels. RMSNorm runs as the projection\'s prologue, and the QKV bias, RoPE and the KV-cache write as its epilogue, so a layer is 5 launches and activations stop making round trips to memory.',
       'Use flash-decoding attention. The context is split into chunks that run at once, each keeping a running softmax, and the last block merges them, so one pass over K and V serves a whole group of query heads.',
       'Keep every SM reading. At batch 1 each projection is a matrix times one vector. The GEMV streams the weights with 16-byte loads and sizes its grid from the occupancy API, so it reads at 520 to 580 GB/s of the card\'s 616.',
-      'Check and measure. Perplexity matches Hugging Face within 0.003% and greedy tokens match except where HF\'s own top two are tied; then every engine is timed on the same card.',
+      'Check and measure. Perplexity matches Hugging Face within 0.01% and 99.4 to 99.9% of top-1 tokens agree; then every engine is timed on the same card.',
     ],
-    role: 'I wrote hipinfer from scratch in HIP: the prefill GEMM (92 to 95% of cuBLAS on Turing), FlashAttention-2-style attention, the fused kernels and the benchmark harness. It is the fastest single-request FP16 decoder on all 5 models I tested on an RTX 2080 Ti, 6 to 17% faster than llama.cpp on 1B to 3B models, and two GPUs with tensor parallelism decode 1.55 to 1.75x faster.',
+    role: 'I wrote every kernel in hipinfer from scratch in HIP, with no cuBLAS or vendor libraries, and it runs dense and MoE models, tensor parallelism over two GPUs, int8 weights, speculative decoding and KV-cache eviction. It beats llama.cpp at batch-1 decode on every model I tested on three GPUs (5 to 16% on 1B to 3B models), is 23 to 31% faster than vLLM on an A100, and int8 makes decode 1.6 to 1.8x faster than fp16.',
   },
   hackutd: {
     place: 'ecsw', visual: 'stage', kicker: 'Leadership, HackUTD',
@@ -145,7 +145,7 @@ export const TOURS = {
       'I organize events.',
       'I coordinate with sponsors such as T-Mobile.',
     ],
-    role: 'Organizer on the HackUTD leadership team since 2026. I made the hackathon\'s interactive 3D campus map in three.js, and the 3D modeling and animation on its website.',
+    role: 'Organizer on the HackUTD leadership team since 2026, leading 10+ volunteers. I built a RAG and MCP Discord bot that cut pre-event questions to organizers by 80%, and the hackathon\'s interactive 3D campus map in three.js, used by hundreds.',
   },
   teaching: {
     place: 'hall', visual: 'board', kicker: 'Leadership, HackUTD workshops',
@@ -160,13 +160,13 @@ export const TOURS = {
       },
     },
     title: 'Teaching AI workshops', how: 'What the workshops cover',
-    lede: 'HackUTD runs 10 AI workshops. I led 5 and assisted 5, and after we redesigned how topics get picked, average attendance tripled from 30 to over 100. Everyone leaves having built something that works.',
+    lede: 'I led 5 of HackUTD\'s AI workshops, and turnout tripled from 30 to over 100. Everyone leaves having built something that works.',
     steps: [
       'Retrieval-augmented generation: look up the relevant documents, then answer from them.',
       'Model Context Protocol: one standard way to connect tools and data to any AI app.',
       'Agents and tools: the model calls tools in a loop until it can answer.',
       'Hands-on: everyone builds a small agent with a RAG tool.',
     ],
-    role: 'I lead workshops on building with AI for hundreds of HackUTD participants, and redesigned the topic selection across all 10 of them.',
+    role: 'I lead AI workshops for HackUTD participants, 5 so far, and turnout tripled from 30 to over 100. I also built the hackathon\'s RAG and MCP Discord bot, which cut pre-event questions to organizers by 80%.',
   },
 };

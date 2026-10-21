@@ -9,7 +9,7 @@ export const GPU = { name: 'RTX 2080 Ti', bw: 616 };                   // GB/s
 export const MODEL = { name: 'TinyLlama-1.1B', gb: 2.09 };              // bytes read per token: the weights (not the embedding table) and the KV cache
 export const FLOOR = (MODEL.gb / GPU.bw) * 1000;                        // ms per token if memory were the only cost
 const ENGINES = [
-  { name: 'hipinfer', ms: 4.13, mine: true },
+  { name: 'hipinfer', ms: 4.14, mine: true },
   { name: 'llama.cpp', ms: 4.77 },                      // F16 GGUF, best of flash-attention on/off
   { name: 'torch.compile', ms: 5.24 },                  // gpt-fast style, static KV
   { name: 'HF eager', ms: 27.7 },
@@ -53,7 +53,7 @@ export class HipinferScreen extends Screen {
     text(ctx, 'output vs Hugging Face', kb.x, yv, { size: 12, color: C.dim });
     const n = s === 4 ? Math.min(24, Math.floor(st * 6)) : 0;
     for (let i = 0; i < 24; i++) rect(ctx, kb.x + (i % 12) * 28, yv + 16 + Math.floor(i / 12) * 22, 24, 16, { fill: i < n ? C.green : '#1a222c', alpha: i < n ? 0.85 : 1 });
-    text(ctx, s === 4 ? (n < 24 ? `checking token ${n + 1} of 128…` : 'perplexity within 0.003% of HF') : 'checked after the kernels compile', kb.x, yv + 72, { size: 12, color: s === 4 && n === 24 ? C.green : C.dim });
+    text(ctx, s === 4 ? (n < 24 ? `checking token ${n + 1} of 128…` : 'perplexity within 0.01% of HF') : 'checked after the kernels compile', kb.x, yv + 72, { size: 12, color: s === 4 && n === 24 ? C.green : C.dim });
     text(ctx, 'one source: run on NVIDIA, compile-checked for AMD', kb.x, kb.y + kb.h - 6, { size: 11, color: C.faint });
     this.terminal(ctx, 8, 402, 610, h - 410);
     const rb = pane(ctx, 626, 402, w - 634, h - 410, 'results', { accent: C.purple });

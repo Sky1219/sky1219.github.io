@@ -41,12 +41,12 @@ typography:
     lineHeight: 1.25
     letterSpacing: "-0.015em"
   body:
-    fontFamily: "Overpass, Helvetica Neue, Arial, sans-serif"
+    fontFamily: "Bricolage Grotesque, Helvetica Neue, Arial, sans-serif"
     fontSize: "17px"
     fontWeight: 400
     lineHeight: 1.6
   label:
-    fontFamily: "JetBrains Mono, ui-monospace, Menlo, monospace"
+    fontFamily: "Bricolage Grotesque, Helvetica Neue, Arial, sans-serif"
     fontSize: "12px"
     fontWeight: 500
     letterSpacing: "0.12em"
@@ -128,7 +128,7 @@ The density is moderate. One wide container, a sticky-heading résumé grid, and
 **Key Characteristics:**
 - Two worlds: daylight paper for reading, campus-at-night for being there.
 - Orange means "you can go here". It's a wayfinding signal, not decoration.
-- A tall, tight display grotesque, road-sign Overpass for reading, and mono for instruments and labels.
+- One typeface, Bricolage Grotesque, for everything: tall and tight for the name, plain at reading sizes.
 - Live canvas screens instead of screenshots.
 - Cards as the record: each project lives once, with its detail one click down.
 
@@ -163,10 +163,9 @@ The canvas screens have their own instrument palette in `src/screens/kit.js` (bl
 ## Typography
 
 **Display font:** Bricolage Grotesque (fallback: Helvetica Neue, Arial)
-**Body font:** Overpass (fallback: Helvetica Neue, Arial)
-**Label/mono font:** JetBrains Mono (fallback: ui-monospace, Menlo)
+**One face for everything:** Bricolage Grotesque (fallback: Helvetica Neue, Arial), at every size from the name to the labels, with tabular figures so numbers line up. The room screens' terminals and code are the one exception: they stay in JetBrains Mono.
 
-**Character:** Bricolage's variable optical size gives the name a tall, almost poster-like compression at the top of the page. Overpass, drawn from the Highway Gothic road-sign letters, is wayfinding type: it suits a résumé that doubles as a map, and stays plain enough for long bullets. Mono is reserved for anything that behaves like an instrument: section numbers, kickers, the HUD, and room titles in the tour.
+**Character:** Bricolage's variable optical size does the work: tall and compressed for the name, open and plain at reading sizes, so one family carries the whole page.
 
 ### Hierarchy
 - **Display** (800, clamp 56–118px, line-height 0.86, opsz 96): the name in the hero only. It is set on two lines, with the second line indented 0.42em on desktop.
@@ -177,7 +176,7 @@ The canvas screens have their own instrument palette in `src/screens/kit.js` (bl
 - **Label** (mono 500, 12–13px, letter-spacing 0.1–0.14em, uppercase): only in the tour, for the HUD and room-title kickers.
 
 ### Named Rules
-**The Instrument Rule.** Mono means "measured or indexed": numbers, labels, readouts and tour titles. Prose is never set in mono.
+**The One Face Rule.** Everything on the page and in the tour UI is Bricolage Grotesque; hierarchy comes from size, weight, tracking and case, never from a second family. Only the room screens' terminals and code stay monospace.
 
 **The Tight Display Rule.** Display and headline faces always carry negative tracking (−0.015 to −0.045em). Larger text gets tighter tracking.
 
@@ -185,7 +184,7 @@ The canvas screens have their own instrument palette in `src/screens/kit.js` (bl
 
 There is one centred container, 1240px wide, with 32px gutters on desktop and 16px at 880px and below.
 
-- **Hero:** a two-column grid (1fr / 1.1fr). On the left: name, the ask, a mono proof line (three bold numbers: 4.13 ms/token, 3× requests, 2 papers in preparation), the contact row (icons plus the résumé button), the intro (which leads with the strongest result and links the projects in orange), and the orange-link hint. On the right: the night plate (square, at most 80vh). No eyebrow above the name. Below 880px it stacks as name, ask, contact, intro, hint; the plate moves (in main.js) to sit between the Projects and Research rows, so the proof comes first and the map becomes the way into the rooms.
+- **Hero:** a two-column grid (1fr / 1.1fr). On the left: name, the ask, the contact row (icons plus the résumé button), the intro (which leads with the strongest result and links the projects in orange), and the orange-link hint. On the right: the night plate (square, at most 80vh). No eyebrow above the name. Below 880px it stacks as name, ask, contact, intro, hint; the plate moves (in main.js) to sit between the Projects and Research rows, so the proof comes first and the map becomes the way into the rooms.
 - **Landmarks:** a skip link ("Skip to the work") jumps to `<main id="content">`, which holds Projects, Research and the résumé sections (`.resume`); each card's "Details" carries hidden text naming its project.
 - **Projects and Research:** the cards *are* these sections; the résumé below keeps only Leadership, Education and Skills. Projects is a row of three cards; Research is a row whose first column is a plain lab note (lab, advisor, dates, one sentence) followed by two cards. Cards align to the top so an opened card doesn't stretch its neighbours. Two columns between 881 and 1100px; one below 880px, where the shot becomes a 16:7 strip above the text.
 - **Résumé:** each section is a two-column grid, a 240px sticky heading beside a content column of at most 780px, with a 56px column gap. Sections are separated by a 2px Forest Ink rule. On mobile the heading sits above the content and stops being sticky.
@@ -264,6 +263,17 @@ A dark, glassy column (6px blur, rgba(6,10,18,.55–.74) gradient, 12px corners)
 ### Tour Motion
 Every tour flies in: warp, campus flyover, through the wall, the decoding room title, the walk to the screen. "Skip the flight" (solid orange) jumps to the room, and the brief is up from the start on an 88% night panel so there is something to read over the city. Moving to another tour in the same room (the "Also in this room" pills) goes straight there and replaces the history entry rather than adding one. The brief ends with those pills and an email/résumé line. While a tour is open, the page behind it is `inert`, focus starts on "Back to the page" and moves to the brief's title on arrival, and the dialog is named "Tour: <title>". The decoding room title is hidden from screen readers; the hello's typed words are too, with the full sentence announced once.
 
+### Intro (src/boot.js)
+Once a visit (sessionStorage), never with reduced motion, without WebGL, or on a deep link into a tour. About 22 s (the film runs at a third speed; a skip plays the break-through at full speed): a short film cut from seven models built in Blender (`tools/build_intro.py` → `public/intro/intro.glb`, each under an empty named for it), rendered in three.js with ACES tone mapping, a room environment for the metal, orange rim and cyan fill lights, fog, a survey-grid floor, drifting dust and bloom. Over it, on a 2D canvas, the HackUTD Zero Day intro's language: an RGB split and tearing on the opening and the break, scanlines, scrambling type, all Bricolage.
+
+The shots don't cut, they dissolve. Through each change (0.84 s, centred on the cut) an orange scan plane, a faint grid with a bright rim, sweeps across the subject and the solid behind it is clipped away; what was there leaves as square pixels sampled from the model's surface (7,000 per model, coloured by its material, sorted along the sweep so each lands on the part of the next model across from it), arcs over, and lands as a cyan plane a beat behind builds the next subject. The camera glides from one shot's end to the next shot's start, pulling back mid-change so both models are whole. The next model shows first as a flickering cyan wireframe ahead of its build, and the last one's wireframe lingers a moment where the cut has passed; through the middle of each change, bands of the frame slip sideways and break into blocks. The subjects are the card, the chip, the network, the stopwatch and the card again. The film opens the same way: the card builds out of a storm of pixels in the dark behind it. Whatever flies leaves light trails (an afterimage pass, through the changes, behind the memory sticks and in the dive). The floor is live: packets of orange light race down some of the grid's lines, and as each subject locks, a cyan ring ripples out along the lines from under it while a shockwave bends the frame outward from it (a bigger one from the hub as the camera dives). Once a subject is built, a reticle (corner brackets, a crosshair, a turning dashed ring, a sweep line and ticks) closes in on its middle, white while it locks and orange once it has. In the finale the name builds out of pixels streaming from the fan's hub, then snaps to type.
+- **open:** a cursor while the models load; then close across the graphics card's spinning fans and fins as its light strip flickers on.
+- **INFERENCE:** a GPU package (lit traces on a dark die) turns in the middle; memory sticks streak past the lens, one near, one far; the card sits behind.
+- **RESEARCH:** the camera flies alongside a neural network whose layers fire in turn, over a causal attention pattern rising out of the floor as columns.
+- **EFFICIENCY:** a stopwatch, its hand racing; a speed gauge swings in with its needle slamming to the top.
+- **finale:** back to the card; its gold fingers light, the dust pours into its fan, the camera dives into the hub as the name decodes over a dark band, and it breaks through with a flash onto the page.
+Each shot's word slams onto the floor, and nothing else is written over the shots. The models are bevelled and smooth-shaded so their edges catch the light. The camera has depth of field focused on each shot's subject (things passing the lens go soft), a handheld drift and a speed ramp (in fast, slow on the subject, out fast); the frame is graded under a dark sky dome with an ember line at the horizon, then finished with light shafts streaming from just behind the subject (from the fan's hub in the finale, where they swell), a split-tone grade (teal shadows, warm highlights), a faint gate weave, chromatic aberration toward the edges, a vignette, grain and anamorphic streaks off anything bright. Each shot opens with a rack focus onto its subject, each word lands with a jolt, and warm light leaks drift in from the edges through every change. It's framed as film: letterbox bars that close in at the signal and open as the camera dives through, the shot number and name and a running timecode in them, speed lines that surge a little on each change and hard in the dive, and a slight Dutch roll on the fly-past shots. Emissive strengths are tuned in the intro for each shot's distance so nothing blows out. At the break-through the last frame shatters: it splits into tiles that fly out from the fan toward the lens with burning edges, at full speed, and the page is already there behind them. A click, key, wheel or touch skips to the break-through. While it runs, `html.intro-on` covers the page and holds the hero's entrance, which then plays as the intro leaves; the hello waits for it. `?intro=2.5` freezes it at 2.5 s of film time (7.5 s in) for checking a frame (and exposes the scene as `window.__intro`).
+
 ### Hello
 The 3D avatar in the lower-right corner with a Campus Night speech bubble (1.5px Night Beacon border, 14px corners, a tail pointing at the avatar). While it talks, the orange links on the page pulse twice.
 
@@ -274,7 +284,7 @@ The 3D avatar in the lower-right corner with a Campus Night speech bubble (1.5px
 - **Do** use Burnt Signal for orange text on paper and Signal Orange for orange strokes, fills and focus rings. Text on an orange fill is near-black (#1a0b02).
 - **Do** keep the paper side light and the night side dark. Dark surfaces belong to the map plate, the canvas monitors, the hello, and the tour.
 - **Do** show work as live canvas screens rather than static screenshots.
-- **Do** set numbers, kickers and readouts in JetBrains Mono, uppercase and tracked, for labels.
+- **Do** set labels and readouts in Bricolage with tabular figures, uppercase and tracked; keep monospace for code on the room screens only.
 - **Do** keep every animation behind `prefers-reduced-motion`. Under reduce, all transitions and animations go to zero.
 - **Do** keep the 16px side gutter and single-column stacking at 880px and below, with every tap target at least 44px (tour buttons, pins, icons, summaries).
 

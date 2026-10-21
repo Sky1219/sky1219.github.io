@@ -247,14 +247,18 @@ if (TOURS[location.hash.slice(1)]) open(location.hash.slice(1));
 
 // the hello (src/intro.js): me, popping up to say the page is interactive. On every load, a moment in, but not once
 // a tour has been opened (so not on the way back from one), nor with reduced motion or no WebGL to draw me with
+// the intro (src/boot.js) plays first when <head> asked for it; the hello waits for it
+const booted = document.documentElement.classList.contains('intro-on')
+  ? import('./boot.js').then((m) => m.run()).catch(() => document.documentElement.classList.remove('intro-on'))
+  : Promise.resolve();
 {
-  if (webgl && !reduce()) setTimeout(() => {
+  if (webgl && !reduce()) booted.then(() => setTimeout(() => {
     if (toured) return;
     import('./intro.js').then((m) => m.show({ onDone: () => { hello = null; } })).then((h) => {
       hello = h; if (toured) h.hide();
       if (matchMedia('(pointer: coarse)').matches) setTimeout(() => h.hide(), 9000);
     }).catch(() => {});
-  }, 1600);
+  }, 1600));
 }
 
 // on a phone the map follows the projects (the proof first); on a wide screen it sits beside the name

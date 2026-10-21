@@ -81,7 +81,7 @@ export function createFx(canvas) {
       const lines = decode(w.lines, w.t0 + BURST + 0.15, t);
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       lines.forEach((s, i) => {
-        ctx.font = i === lines.length - 1 ? `700 ${Math.min(30, W / 22)}px "JetBrains Mono", monospace` : `500 ${Math.min(14, W / 34)}px "JetBrains Mono", monospace`;
+        ctx.font = i === lines.length - 1 ? `700 ${Math.min(30, W / 22)}px "Bricolage Grotesque", sans-serif` : `500 ${Math.min(14, W / 34)}px "Bricolage Grotesque", sans-serif`;
         ctx.fillStyle = i === lines.length - 1 ? '#fff' : `rgba(${SIG}, 0.95)`; ctx.shadowColor = `rgb(${SIG})`; ctx.shadowBlur = 16;
         ctx.fillText(s, cx, cy + H * 0.2 + (i - lines.length + 1) * 26 + (i === lines.length - 1 ? 10 : 0));
       });
@@ -122,12 +122,12 @@ export function createFx(canvas) {
       ctx.strokeStyle = `rgba(${SIG}, ${0.5 + 0.5 * lock})`; ctx.lineWidth = 2;
       for (const [sx, sy2] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { ctx.beginPath(); ctx.moveTo(x + sx * s, y + sy2 * (s - 16)); ctx.lineTo(x + sx * s, y + sy2 * s); ctx.lineTo(x + sx * (s - 16), y + sy2 * s); ctx.stroke(); }
       ctx.beginPath(); ctx.arc(x, y, 4, 0, 6.283); ctx.fillStyle = `rgb(${SIG})`; ctx.fill();
-      ctx.font = '700 14px "JetBrains Mono", monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff';
+      ctx.font = '700 14px "Bricolage Grotesque", sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff';
       const lx = Math.min(W - 230, x + s + 14), ly = Math.max(90, y - s);
-      ctx.fillText(h.label, lx, ly); ctx.font = '12px "JetBrains Mono", monospace'; ctx.fillStyle = `rgb(${SIG})`;
+      ctx.fillText(h.label, lx, ly); ctx.font = '12px "Bricolage Grotesque", sans-serif'; ctx.fillStyle = `rgb(${SIG})`;
       ctx.fillText(lock < 1 ? 'ACQUIRING' : 'LOCKED', lx, ly + 18); ctx.fillText(`${Math.round(h.dist)} m`, lx, ly + 34);
     }
-    ctx.font = '11px "JetBrains Mono", monospace'; ctx.textAlign = 'left'; ctx.fillStyle = `rgba(${SIG}, 0.9)`;
+    ctx.font = '11px "Bricolage Grotesque", sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = `rgba(${SIG}, 0.9)`;
     (h.lines || []).forEach((s, i) => ctx.fillText(s, m + 6, H - m - 12 - i * 16));
     ctx.globalAlpha = 1;
   }

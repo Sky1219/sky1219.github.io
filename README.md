@@ -90,6 +90,7 @@ The page opens a tour directly from its link too, for example `/#kv`.
   OpenStreetMap footprints, with the scan-in; `rooms.js` loads the rooms and sets their lighting and camera
   paths; `people.js` builds the light people and my avatar; `index.js` runs the flight and the camera.
   three.js and the rooms only load when someone opens a tour.
+- `public/intro/intro.glb`: the opening intro's models (src/boot.js): a graphics card, a GPU package, a memory stick, a neural network, an attention pattern, a stopwatch and a gauge, from `blender -b --factory-startup --python tools/build_intro.py`.
 - `public/rooms/*.glb`: the three rooms and the avatar, modelled in Blender. Sources: `assets/rooms.blend`
   (scenes Lab, Hall and Atrium; each room has empties named `cam_start` and `screen_target`) and
   `assets/avatar.blend` (one mesh per body part, named like the rig's parts in `people.js`). Export with
