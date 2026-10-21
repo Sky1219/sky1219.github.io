@@ -143,13 +143,27 @@ export function run() {
       const cool = new THREE.PointLight(0x5fd1be, 14, 12, 1.6); cool.position.set(3, -0.5, 2); scene.add(cool);
       const core = new THREE.PointLight(0xff8a3d, 0, 6, 1.4); scene.add(core);
       const sky = new THREE.Mesh(new THREE.SphereGeometry(30, 32, 16), new THREE.ShaderMaterial({
-        side: THREE.BackSide, depthWrite: false, fog: false,
+        side: THREE.BackSide, depthWrite: false, fog: false, uniforms: { time: { value: 0 }, flash: { value: 0 }, bolt: { value: new THREE.Vector2(0.5, 0.4) } },
         vertexShader: 'varying vec3 vP; void main() { vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-        fragmentShader: `varying vec3 vP; void main() {
-          float y = normalize(vP).y;
-          vec3 top = vec3(0.012, 0.03, 0.026), mid = vec3(0.004, 0.006, 0.005), glow = vec3(0.16, 0.06, 0.015);
-          vec3 c = mix(mid, top, smoothstep(0.0, 0.7, y)) + glow * exp(-pow((y + 0.02) * 9.0, 2.0));   // an ember line at the horizon
-          gl_FragColor = vec4(c, 1.0); }`,
+        // a storm over the Grid (after TRON: Ares): drifting clouds, a grid on the sky that glows where the clouds touch
+        // it, and now and then lightning inside them
+        fragmentShader: `varying vec3 vP; uniform float time, flash; uniform vec2 bolt;
+          float h3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+          float n3(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+            return mix(mix(mix(h3(i), h3(i + vec3(1, 0, 0)), f.x), mix(h3(i + vec3(0, 1, 0)), h3(i + vec3(1, 1, 0)), f.x), f.y),
+                       mix(mix(h3(i + vec3(0, 0, 1)), h3(i + vec3(1, 0, 1)), f.x), mix(h3(i + vec3(0, 1, 1)), h3(i + vec3(1, 1, 1)), f.x), f.y), f.z); }
+          float fbm(vec3 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 5; i++) { s += a * n3(p); p *= 2.03; a *= 0.5; } return s; }
+          void main() {
+            vec3 d = normalize(vP); float y = d.y;
+            vec3 top = vec3(0.012, 0.03, 0.026), mid = vec3(0.004, 0.006, 0.005), glow = vec3(0.16, 0.06, 0.015);
+            vec3 c = mix(mid, top, smoothstep(0.0, 0.7, y)) + glow * exp(-pow((y + 0.02) * 9.0, 2.0));   // an ember line at the horizon
+            float band = smoothstep(0.02, 0.18, y) * (1.0 - smoothstep(0.55, 0.9, y));
+            float cl = smoothstep(0.42, 0.78, fbm(d * 3.2 + vec3(time * 0.05, 0.0, time * 0.03))) * band;
+            float az = atan(d.z, d.x) / 6.2832 * 48.0, el = y * 22.0;
+            float gl = max(1.0 - smoothstep(0.0, 0.05, abs(fract(az) - 0.5) * 2.0 - 0.9), 1.0 - smoothstep(0.0, 0.05, abs(fract(el) - 0.5) * 2.0 - 0.9));
+            float near = exp(-length(vec2(atan(d.z, d.x) / 6.2832 - bolt.x, y - bolt.y) * vec2(3.0, 4.0)));
+            c += vec3(0.02, 0.05, 0.05) * cl + vec3(0.25, 0.75, 0.7) * gl * cl * (0.12 + 1.6 * flash * near) + vec3(0.5, 0.65, 0.7) * cl * flash * near * 0.5;
+            gl_FragColor = vec4(c, 1.0); }`,
       }));
       scene.add(sky); scene.background = null;
       const grid = new THREE.GridHelper(40, 80, 0x2a6b60, 0x173a33); grid.position.y = -1.35; grid.material.transparent = true; grid.material.opacity = 0.5; scene.add(grid);
@@ -176,6 +190,76 @@ export function run() {
           }`,
       }));
       floor.frustumCulled = false; scene.add(floor);
+      // light cycles, after TRON's titles: a few ribbons of light racing along the grid's lines, turning hard at the
+      // corners, each leaving a translucent wall with bright rims that fades out behind it
+      const CYC = 8, SEG = 70, TRAIL = 5, FLOOR_Y = -1.349, WALL = 0.2, rnd = (() => { let x = 7; return () => (x = (x * 16807) % 2147483647) / 2147483647; })();
+      const cycles = Array.from({ length: CYC }, (_, ci) => {
+        // a path along the grid (0.5 apart), turning now and then and kept inside the floor's lit middle
+        let x = Math.round((rnd() - 0.5) * 24) / 2, z = Math.round((rnd() - 0.5) * 16) / 2 - 2, d = Math.floor(rnd() * 4);
+        const pts = [[x, z]], dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+        for (let i = 0; i < 200; i++) {
+          if (rnd() < 0.22) d = (d + (rnd() < 0.5 ? 1 : 3)) % 4;
+          const [dx, dz] = dirs[d]; if (Math.abs(x + dx * 0.5) > 11 || z + dz * 0.5 > 4 || z + dz * 0.5 < -10) { d = (d + 2) % 4; }
+          x += dirs[d][0] * 0.5; z += dirs[d][1] * 0.5; pts.push([x, z]);
+        }
+        const geo = new THREE.BufferGeometry(), P = new Float32Array((SEG + 1) * 2 * 3), F = new Float32Array((SEG + 1) * 2), Y = new Float32Array((SEG + 1) * 2), idx = [];
+        for (let i = 0; i <= SEG; i++) { Y[i * 2] = 0; Y[i * 2 + 1] = 1; if (i < SEG) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } }
+        geo.setAttribute('position', new THREE.BufferAttribute(P, 3)); geo.setAttribute('fade', new THREE.BufferAttribute(F, 1)); geo.setAttribute('vy', new THREE.BufferAttribute(Y, 1)); geo.setIndex(idx);
+        const mesh = new THREE.Mesh(geo, new THREE.ShaderMaterial({
+          transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, uniforms: { color: { value: new THREE.Color(ci % 2 ? 0x5fd1be : 0xff8a3d) }, fade: { value: 1 } },
+          vertexShader: 'attribute float fade, vy; varying float vF, vY; void main() { vF = fade; vY = vy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+          fragmentShader: `uniform vec3 color; uniform float fade; varying float vF, vY;
+            void main() { float rim = pow(abs(vY - 0.5) * 2.0, 8.0), head = smoothstep(0.96, 1.0, vF);
+              gl_FragColor = vec4(color * vF * vF * fade * (0.18 + 1.6 * rim + 2.5 * head), 1.0); }`,
+        }));
+        mesh.frustumCulled = false; scene.add(mesh);
+        return { pts, geo, P, F, mesh, speed: 4.5 + rnd() * 2.5, off: rnd() * 6 };
+      });
+      // a wireframe city on the horizon, the way TRON's titles resolve: towers in outline, far off in the haze, a few
+      // windows lit, so the void becomes a place
+      const cityPos = [], winPos = [], winCol = [];
+      for (let i = 0; i < 170; i++) {
+        const a = rnd() * Math.PI * 2, r = 14 + rnd() * 9, cx = Math.cos(a) * r, cz = Math.sin(a) * r;
+        const bw = 0.5 + rnd() * 1.3, bd = 0.5 + rnd() * 1.3, bh = rnd() < 0.12 ? 6 + rnd() * 6 : 1 + rnd() * 4, y0 = FLOOR_Y;
+        const c = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sz]) => [cx + (sx * bw) / 2, cz + (sz * bd) / 2]);
+        for (let k = 0; k < 4; k++) {
+          const [x1, z1] = c[k], [x2, z2] = c[(k + 1) % 4];
+          cityPos.push(x1, y0 + bh, z1, x2, y0 + bh, z2, x1, y0, z1, x1, y0 + bh, z1);   // the roof's edges and the corners
+          if (bh > 3) cityPos.push(x1, y0 + bh * 0.5, z1, x2, y0 + bh * 0.5, z2);         // a floor line on the tall ones
+        }
+        for (let k = 0; k < 6; k++) if (rnd() < 0.6) { const [x1, z1] = c[Math.floor(rnd() * 4)]; winPos.push(x1, y0 + rnd() * bh, z1); const o = rnd() < 0.7; winCol.push(o ? 1 : 0.37, o ? 0.54 : 0.82, o ? 0.24 : 0.75); }
+      }
+      const cityGeo = new THREE.BufferGeometry(); cityGeo.setAttribute('position', new THREE.Float32BufferAttribute(cityPos, 3));
+      const city = new THREE.LineSegments(cityGeo, new THREE.LineBasicMaterial({ color: 0x3fa594, transparent: true, opacity: 0.22, fog: false, depthWrite: false }));
+      const winGeo = new THREE.BufferGeometry(); winGeo.setAttribute('position', new THREE.Float32BufferAttribute(winPos, 3)); winGeo.setAttribute('color', new THREE.Float32BufferAttribute(winCol, 3));
+      const windows = new THREE.Points(winGeo, new THREE.PointsMaterial({ size: 2.5, sizeAttenuation: false, vertexColors: true, transparent: true, opacity: 0.8, fog: false, depthWrite: false }));
+      scene.add(city, windows);
+      // searchlights out of the city (after Blade Runner): soft cones of light that rise into the haze and sweep slowly,
+      // brightest down their middle and fading with height
+      const beamGeo = new THREE.ConeGeometry(1.6, 20, 32, 1, true); beamGeo.translate(0, -10, 0); beamGeo.rotateX(Math.PI);
+      const beams = [[-2.3, 0xffd9b0, 0.0], [-1.6, 0x9fe8de, 2.1], [-0.9, 0xffc590, 4.0], [-2.75, 0xffe6c8, 1.2]].map(([a, hex, ph]) => {
+        const m = new THREE.Mesh(beamGeo, new THREE.ShaderMaterial({
+          transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false,
+          uniforms: { color: { value: new THREE.Color(hex) }, amt: { value: 1 } },
+          vertexShader: `varying float vD; varying vec3 vN, vV; void main() { vD = length(position) / 20.0; vec4 mv = modelViewMatrix * vec4(position, 1.0);
+            vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+          fragmentShader: `uniform vec3 color; uniform float amt; varying float vD; varying vec3 vN, vV;
+            void main() { float core = pow(abs(dot(vN, vV)), 3.0); gl_FragColor = vec4(color * core * (1.0 - vD) * (1.0 - vD) * 0.09 * amt, 1.0); }`,
+        }));
+        m.position.set(Math.cos(a) * 16, FLOOR_Y, Math.sin(a) * 16); m.userData.ph = ph; m.frustumCulled = false; scene.add(m); return m;
+      });
+      const at2 = (pts, dist) => { const i = Math.max(0, Math.min(pts.length - 2, Math.floor(dist / 0.5))), f = clamp01(dist / 0.5 - i); return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f]; };
+      const race = (t, fade) => {
+        for (const c of cycles) {
+          c.mesh.visible = fade > 0.01; if (!c.mesh.visible) continue; c.mesh.material.uniforms.fade.value = fade;
+          const head = c.off + t * c.speed;
+          for (let i = 0; i <= SEG; i++) {
+            const dist = head - (i / SEG) * TRAIL, [x, z] = at2(c.pts, Math.max(0, dist));
+            c.P.set([x, FLOOR_Y, z, x, FLOOR_Y + WALL, z], i * 6); c.F[i * 2] = c.F[i * 2 + 1] = dist > 0 ? 1 - i / SEG : 0;
+          }
+          c.geo.attributes.position.needsUpdate = true; c.geo.attributes.fade.needsUpdate = true;
+        }
+      };
 
       const gltf = await new GLTFLoader().loadAsync(new URL('../intro/intro.glb', import.meta.url).href);
       const M = {};
@@ -492,6 +576,14 @@ export function run() {
           const fu = floor.material.uniforms, settleAt = si0 === 0 ? FORM : si0 < 4 ? CUTS[si0] + TR : SUCK;
           fu.time.value = t; fu.ringT.value = k ? -1 : t - settleAt;
           if (shot === 'finale') fu.center.value.set(hub.x, hub.z); else { subject.getWorldPosition(v); fu.center.value.set(v.x, v.z); }
+          race(t, grid.material.opacity / 0.5);
+          const su = sky.material.uniforms; su.time.value = t;
+          for (const b of beams) { const ph = b.userData.ph; b.rotation.set(0.35 * Math.sin(t * 0.5 + ph), 0, 0.4 * Math.cos(t * 0.37 + ph * 1.7)); b.material.uniforms.amt.value = grid.material.opacity / 0.5; }
+          let fl = 0; for (const [s0, bx, by] of [[0.7, 0.2, 0.35], [2.0, 0.62, 0.42], [3.3, 0.85, 0.3], [4.6, 0.38, 0.4], [5.9, 0.7, 0.38]]) {
+            const q = t - s0; if (q > 0 && q < 0.25) { fl = Math.max(fl, (q < 0.05 ? 1 : q < 0.08 ? 0.2 : q < 0.13 ? 0.8 : 0.8 * (1 - (q - 0.13) / 0.12))); su.bolt.value.set(bx, by); }
+          }
+          su.flash.value = fl;
+          city.material.opacity = 0.22 * grid.material.opacity / 0.5; windows.material.opacity = (0.55 + 0.25 * Math.sin(t * 9)) * grid.material.opacity / 0.5;
           fu.rush.value = shot === 'finale' ? 0.6 * clamp01((t - SUCK) / 0.6) : 0; fu.fade.value = grid.material.opacity / 0.5;
           // a handheld drift, and the focus on what the shot is about
           camera.position.x += 0.018 * Math.sin(t * 1.7) + 0.008 * Math.sin(t * 4.3); camera.position.y += 0.014 * Math.sin(t * 2.3 + 1);
@@ -588,6 +680,18 @@ export function run() {
         const sx = w * clamp01((t - BT0) / 0.15); ctx.globalAlpha = 0.5 * fz * (1 - clamp01((t - BT0) / 0.15)); ctx.fillStyle = `rgb(${WHITE})`; ctx.fillRect(sx - 1, 0, 2, h);
         ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
       }
+      // screen burn (after Blade Runner 2049's worn screens): the last shot's word stays faintly burned into the frame,
+      // ghosted and shifted cyan, fading over a beat as the next one arrives
+      const prevWord = WORDS[SHOTS[si - 1]];
+      if (prevWord && since < 1.4 && t < DIVE) {
+        const fs = Math.min(w * 0.15, h * 0.3), burn = 0.16 * (1 - since / 1.4) * (0.85 + 0.15 * Math.sin(t * 50));
+        ctx.save(); ctx.font = `800 ${fs}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const fit = Math.min(1, (w * 0.94) / ctx.measureText(prevWord).width);
+        ctx.translate(w / 2 + (CUTS[si] - CUTS[si - 1]) * 18 + 4, (narrow ? h * 0.82 : h * 0.84) + 3); ctx.scale(fit, fit);
+        ctx.globalCompositeOperation = 'lighter'; ctx.lineWidth = 2; ctx.strokeStyle = `rgba(${CYAN},${burn})`; ctx.strokeText(prevWord, 0, 0);
+        ctx.fillStyle = `rgba(${CYAN},${burn * 0.25})`; ctx.fillText(prevWord, 0, 0);
+        ctx.restore();
+      }
       // the shot's word, huge, on the floor: slammed in, drifting
       if (WORDS[shot]) {
         const word = WORDS[shot], fs = Math.min(w * 0.15, h * 0.3);
@@ -645,6 +749,28 @@ export function run() {
             ctx.fillStyle = `rgba(${ORANGE},0.5)`; for (let x = X0 + L + 6; x < X1 - L - 6; x += 9) ctx.fillRect(x, Y0 - 1, 1, (Math.round((x - X0) / 9) % 4 ? 3 : 6));
           }
         }
+      }
+
+      // through the fan and into a tesseract (after Interstellar's): a corridor of lattice frames rushing at the lens out
+      // of the hub, lit unevenly, flickering as if by projectors
+      if (shot === 'finale' && t > DIVE + 0.1) {
+        const tz = clamp01((t - DIVE - 0.1) / 0.35), [hx0, hy0] = ready.hubOnScreen(), vx = hx0 + (w / 2 - hx0) * tz, vy = hy0 + (h / 2 - hy0) * tz, M0 = Math.min(w, h), NF = 16;
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        let prev = null;
+        for (let i = 0; i < NF; i++) {
+          const z = 1 - ((i / NF + (t - DIVE) * 0.9) % 1), half = (M0 * 0.06) / Math.max(0.03, z), proj = (Math.sin(i * 91.7 + Math.floor(t * 30) * 13.1) * 0.5 + 0.5);
+          const a = tz * (1 - z) * (z > 0.97 ? 0 : 1) * (proj < 0.15 ? 0.15 : 0.55 + 0.45 * proj);
+          if (a <= 0.01 || half > Math.max(w, h)) { prev = null; continue; }
+          const x0 = vx - half * 1.3, y0 = vy - half, x1 = vx + half * 1.3, y1 = vy + half;
+          ctx.strokeStyle = `rgba(${i % 4 === 0 ? CYAN : '255, 196, 120'},${a * 0.7})`; ctx.lineWidth = 1 + (1 - z) * 2;
+          ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+          ctx.globalAlpha = 0.45; ctx.beginPath();                                    // the lattice inside each frame, like shelves
+          for (let g = 1; g < 4; g++) { const gx = x0 + ((x1 - x0) * g) / 4, gy = y0 + ((y1 - y0) * g) / 4; ctx.moveTo(gx, y0); ctx.lineTo(gx, y1); ctx.moveTo(x0, gy); ctx.lineTo(x1, gy); }
+          ctx.stroke(); ctx.globalAlpha = 1;
+          if (prev) { ctx.strokeStyle = `rgba(255, 196, 120,${a * 0.35})`; ctx.beginPath(); for (const [px, py, qx, qy] of [[x0, y0, prev[0], prev[1]], [x1, y0, prev[2], prev[1]], [x0, y1, prev[0], prev[3]], [x1, y1, prev[2], prev[3]]]) { ctx.moveTo(px, py); ctx.lineTo(qx, qy); } ctx.stroke(); }
+          prev = [x0, y0, x1, y1];
+        }
+        ctx.restore();
       }
 
       // the name, as the camera dives into the fan, over a dark band so it reads through the glow
