@@ -30,11 +30,11 @@ import { MeshSurfaceSampler } from 'three/examples/jsm/math/MeshSurfaceSampler.j
 
 // the film look, last in the chain: chromatic aberration toward the edges, a vignette, grain
 const FILM = {
-  uniforms: { tDiffuse: { value: null }, time: { value: 0 }, split: { value: 0.0015 }, grain: { value: 0.05 }, glitch: { value: 0 },
+  uniforms: { tDiffuse: { value: null }, time: { value: 0 }, split: { value: 0.0015 }, grain: { value: 0.05 }, glitch: { value: 0 }, drain: { value: 0 },
     shock: { value: null }, shockR: { value: 0 }, shockA: { value: 0 }, aspect: { value: 1 } },
   vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
   fragmentShader: `
-    uniform sampler2D tDiffuse; uniform float time, split, grain, glitch, shockR, shockA, aspect; uniform vec2 shock; varying vec2 vUv;
+    uniform sampler2D tDiffuse; uniform float time, split, grain, glitch, shockR, shockA, aspect, drain; uniform vec2 shock; varying vec2 vUv;
     float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
     void main() {
       vec2 d = vUv - 0.5; float r = length(d);
@@ -52,6 +52,7 @@ const FILM = {
       float lum = dot(c, vec3(0.299, 0.587, 0.114));                  // the grade: teal shadows, warm highlights
       c = mix(c, c * vec3(0.82, 1.04, 1.1) + vec3(0.0, 0.01, 0.014), (1.0 - smoothstep(0.0, 0.32, lum)) * 0.7);
       c = mix(c, c * vec3(1.1, 0.98, 0.86), smoothstep(0.45, 1.0, lum) * 0.55);
+      c = mix(c, vec3(dot(c, vec3(0.3, 0.59, 0.11))) * vec3(0.78, 1.0, 1.08) * 1.15, drain);   // bullet time: the colour drains cold
       c *= mix(1.0, 0.42, smoothstep(0.28, 0.85, r));                 // the vignette
       c += (hash(vUv * vec2(1920.0, 1080.0) + time) - 0.5) * grain;    // the grain
       gl_FragColor = vec4(c, 1.0);
@@ -78,7 +79,10 @@ const FONT = '"Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif';
 const CUTS = [0, 1.2, 2.35, 3.6, 4.85];                  // open, INFERENCE, RESEARCH, EFFICIENCY, finale
 const SHOTS = ['open', 'inference', 'research', 'efficiency', 'finale'];
 const WORDS = { inference: 'INFERENCE', research: 'RESEARCH', efficiency: 'EFFICIENCY' };
-const FIN = CUTS[4], SUCK = FIN + 0.55, DIVE = FIN + 0.95, BREAK = FIN + 2.2, END = BREAK + 1.1;   // after the break, the frame shatters off the page
+const FIN = CUTS[4], SUCK = FIN + 0.9, DIVE = FIN + 1.3, BREAK = FIN + 2.55, END = BREAK + 1.1;   // after the break, the frame shatters off the page
+// bullet time in the finale, before the fan draws everything in: time stops, the colour drains, the camera whips round
+const BT0 = FIN + 0.5, BT1 = FIN + 0.85;
+const frozen = (t) => clamp01((t - BT0) / 0.06) * clamp01((BT1 - t) / 0.06);
 const SCRAMBLE = '!<>-_\\/[]{}=+*^?#01';
 // Between shots the subject doesn't cut, it dissolves: a scan plane sweeps across it, the solid behind the plane is
 // gone, and what was there flies off as square pixels sampled from its surface, which land on the next subject as a
@@ -99,6 +103,16 @@ export function run() {
     document.body.append(cv);
     const dpr = Math.min(2, devicePixelRatio || 1), ctx = cv.getContext('2d');
     const streak = document.createElement('canvas'), sctx = streak.getContext('2d');
+    // a dirty lens: smudges, specks and a few bokeh rings, invisible until the frame turns bright, then lit up
+    const dirt = document.createElement('canvas'); dirt.width = 640; dirt.height = 360;
+    { const d = dirt.getContext('2d'), R = Math.random;
+      for (let i = 0; i < 46; i++) { const x = R() * 640, y = R() * 360, r = 12 + R() * 70, g = d.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, `rgba(255,214,170,${0.05 + R() * 0.08})`); g.addColorStop(1, 'rgba(255,214,170,0)'); d.fillStyle = g; d.fillRect(x - r, y - r, r * 2, r * 2); }
+      for (let i = 0; i < 9; i++) { const x = R() * 640, y = R() * 360, r = 8 + R() * 22; d.strokeStyle = `rgba(255,226,190,${0.08 + R() * 0.08})`; d.lineWidth = 1.2;
+        d.beginPath(); for (let k = 0; k <= 6; k++) { const a = (k / 6) * Math.PI * 2 + 0.3; d[k ? 'lineTo' : 'moveTo'](x + Math.cos(a) * r, y + Math.sin(a) * r); } d.stroke(); }
+      for (let i = 0; i < 260; i++) { d.fillStyle = `rgba(255,236,214,${0.1 + R() * 0.25})`; d.fillRect(R() * 640, R() * 360, 1 + R() * 1.6, 1 + R() * 1.6); } }
+    // how bright the frame is, from a tiny copy of it
+    const probe = document.createElement('canvas'); probe.width = 8; probe.height = 5; const pctx = probe.getContext('2d', { willReadFrequently: true });
     let namePix = null, snap = null, snapHub = null, w = 0, h = 0, raf = 0, done = false, frame = 0, ready = null, last = 0, t0 = 0, skipAt = Infinity;
     const start = performance.now();
     const held = new URLSearchParams(location.search).get('intro'), freeze = held && !Number.isNaN(+held) ? +held : null;
@@ -188,6 +202,25 @@ export function run() {
       for (const l of layers) l.material = l.material.clone();
       const hand = M.watch.getObjectByName('watch_hand'), needle = M.gauge.getObjectByName('gauge_needle');
       const SUBJ = [M.gpu, M.chip, M.net, M.watch, M.gpu];
+      // current through the chip: bright bands race along its traces (both ways across the die), over a dim glow
+      const flow = { value: 0 };
+      M.chip.traverse((o) => {
+        if (!o.isMesh || o.material.name !== 'trace') return;
+        const m = o.material;
+        m.onBeforeCompile = (sh) => {
+          sh.uniforms.flow = flow;
+          sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vLocal;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvLocal = position;');
+          sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vLocal; uniform float flow;')
+            .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+              float lane = floor((vLocal.x + vLocal.z) * 16.0);
+              float bx = fract(vLocal.x * 1.6 - flow * (0.9 + 0.4 * fract(lane * 0.37)) + fract(lane * 0.71));
+              float bz = fract(-vLocal.z * 1.6 - flow * (0.7 + 0.5 * fract(lane * 0.53)) + fract(lane * 0.29));
+              float pulse = smoothstep(0.82, 0.98, bx) * step(bx, 0.98) + smoothstep(0.82, 0.98, bz) * step(bz, 0.98);
+              totalEmissiveRadiance *= 0.35 + 4.0 * pulse;`);
+        };
+        m.customProgramCacheKey = () => 'trace-flow';
+        m.needsUpdate = true;
+      });
 
       // the planes that cut a model during a change (each keeps its model whole until then)
       const OPEN = 1e4;
@@ -228,12 +261,65 @@ export function run() {
       const pixGeo = new THREE.BufferGeometry(), pxPos = new Float32Array(PIX * 3), pxCol = new Float32Array(PIX * 3), pxA = new Float32Array(PIX);
       pixGeo.setAttribute('position', new THREE.BufferAttribute(pxPos, 3)); pixGeo.setAttribute('color', new THREE.BufferAttribute(pxCol, 3)); pixGeo.setAttribute('alpha', new THREE.BufferAttribute(pxA, 1));
       const pixels = new THREE.Points(pixGeo, new THREE.ShaderMaterial({
-        transparent: true, depthWrite: false, uniforms: { scale: { value: 1 } },
-        vertexShader: `attribute vec3 color; attribute float alpha; varying vec3 vC; varying float vA; uniform float scale;
-          void main() { vC = color; vA = alpha; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_PointSize = min(scale * (0.6 + 1.2 * alpha) / -mv.z, scale * 0.35); gl_Position = projectionMatrix * mv; }`,
+        transparent: true, depthWrite: false, uniforms: { scale: { value: 1 }, boost: { value: 1 } },
+        vertexShader: `attribute vec3 color; attribute float alpha; varying vec3 vC; varying float vA; uniform float scale, boost;
+          void main() { vC = color; vA = alpha; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_PointSize = boost * min(scale * (0.6 + 1.2 * alpha) / -mv.z, scale * 0.35); gl_Position = projectionMatrix * mv; }`,
         fragmentShader: 'varying vec3 vC; varying float vA; void main() { if (vA <= 0.0) discard; gl_FragColor = vec4(vC * (0.7 + 0.8 * vA), 0.85 * vA); }',   // square: a pixel, not a dot
       }));
       pixels.frustumCulled = false; scene.add(pixels);
+      // more square pixels of their own (the signals, the data rings), drawn the same way
+      const cloudOf = (n, boost = 1, over = false) => {   // over: drawn over everything (the signals run inside the links)
+        const geo = new THREE.BufferGeometry(), P = new Float32Array(n * 3), C = new Float32Array(n * 3), A = new Float32Array(n);
+        geo.setAttribute('position', new THREE.BufferAttribute(P, 3)); geo.setAttribute('color', new THREE.BufferAttribute(C, 3)); geo.setAttribute('alpha', new THREE.BufferAttribute(A, 1));
+        const pts = new THREE.Points(geo, new THREE.ShaderMaterial({ transparent: true, depthWrite: false, depthTest: !over,
+          uniforms: { scale: pixels.material.uniforms.scale, boost: { value: boost } }, vertexShader: pixels.material.vertexShader, fragmentShader: pixels.material.fragmentShader }));
+        pts.frustumCulled = false;
+        const dirty = () => { for (const k of ['position', 'color', 'alpha']) geo.attributes[k].needsUpdate = true; };
+        return { pts, P, C, A, n, dirty };
+      };
+      // signals through the network: a pulse down every link, from each layer to the next as they fire in turn, with a
+      // short tail; the nodes are where tools/build_intro.py put them (Blender's z up is three's y)
+      const NL = [4, 6, 6, 3], nodeAt = NL.map((n, li) => Array.from({ length: n }, (_, j) => new THREE.Vector3(-1.2 + li * 0.8, (j - (n - 1) / 2) * 0.36, -((j % 2) * 0.12 - 0.06))));
+      const links = []; for (let l = 0; l < 3; l++) for (const a of nodeAt[l]) for (const b of nodeAt[l + 1]) links.push([l, a, b, Math.random()]);
+      const TAIL = 6, WAVES = 2, sig = cloudOf(links.length * TAIL * WAVES, 4, true); M.net.add(sig.pts);
+      const sv = new THREE.Vector3();
+      // data rings: two dashed rings of pixels orbiting each subject once it has locked, on different tilts and speeds
+      const RN = 360, rings3 = cloudOf(RN * 2, 1.6), rc = new THREE.Vector3(), rsz = new THREE.Vector3(), rbox = new THREE.Box3();
+      scene.add(rings3.pts);
+      const RING = [
+        { e1: new THREE.Vector3(1, 0, 0), e2: new THREE.Vector3(0, Math.sin(0.38), Math.cos(0.38)), spin: 0.9, col: [1, 0.54, 0.24] },
+        { e1: new THREE.Vector3(Math.cos(0.8), 0, -Math.sin(0.8)), e2: new THREE.Vector3(0.15, 0.99, 0), spin: -1.3, col: [0.37, 0.82, 0.75] },
+      ];
+      const orbit = (subject, t, fade) => {
+        rings3.pts.visible = fade > 0.01; if (!rings3.pts.visible) return;
+        rbox.setFromObject(subject).getCenter(rc); rbox.getSize(rsz); const R = Math.max(rsz.x, rsz.y, rsz.z) * 0.68;
+        RING.forEach(({ e1, e2, spin, col }, ri) => {
+          for (let i = 0; i < RN; i++) {
+            const j = ri * RN + i, th = (i / RN) * Math.PI * 2 + t * spin, on = Math.floor(i / 10) % 4 !== 3, open = clamp01(fade * 1.4 - (i / RN) * 0.4);
+            const r = R * (1 + (ri ? 0.06 : 0)) * (0.85 + 0.15 * open);
+            sv.copy(rc).addScaledVector(e1, Math.cos(th) * r).addScaledVector(e2, Math.sin(th) * r);
+            rings3.P.set([sv.x, sv.y, sv.z], j * 3); rings3.C.set(col, j * 3);
+            rings3.A[j] = on ? 0.75 * open * (i % 10 === 0 ? 1.3 : 1) : 0;
+          }
+        });
+        rings3.dirty();
+      };
+      const signals = (p, on) => {
+        sig.pts.visible = on; if (!on) return;
+        links.forEach(([l, a, b, r], i) => {
+          for (let wv = 0; wv < WAVES; wv++) {
+            // leaves layer l+1 as it fires and lands on layer l as that one does; a second wave half a beat behind
+            const s = p * 5 - 0.6 - (2 - l) - 0.15 * r - wv * 0.5;
+            for (let k = 0; k < TAIL; k++) {
+              const q = s - k * 0.05, j = (i * WAVES + wv) * TAIL + k, live = q > 0 && q < 1;
+              sv.lerpVectors(b, a, clamp01(q)); sig.P.set([sv.x, sv.y, sv.z], j * 3);
+              sig.C.set(k === 0 ? [0.85, 1, 0.95] : [1, 0.55 - 0.05 * k, 0.24], j * 3);
+              sig.A[j] = live ? (1 - k / TAIL) * Math.min(1, Math.sin(Math.PI * q) * 3) : 0;
+            }
+          }
+        });
+        sig.dirty();
+      };
       // a scan plane: a faint grid with a bright rim, so it reads as a sensor sweeping through rather than a sheet of light
       const scanMat = (hex) => new THREE.ShaderMaterial({
         transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
@@ -354,7 +440,7 @@ export function run() {
               // back to the card: three-quarters, the fingers lighting as everything pours into the fan; then the dive
               at(M.gpu, 0, 0, 0); if (glow) glow.visible = true; for (const r of rings) r.visible = true;
               const charge = clamp01((t - SUCK) / (DIVE - SUCK)), dive = easeIn(clamp01((t - DIVE) / (BREAK - DIVE)));
-              const a = -0.45 + 0.12 * Math.sin(t * 0.4);
+              const a = -0.45 + 0.12 * Math.sin(t * 0.4) + 1.05 * smooth(clamp01((t - BT0) / (BT1 - BT0)));
               camera.position.set(Math.sin(a) * 5.4 * back, 0.75 + 0.25 * back, Math.cos(a) * 5.4 * back); look.set(0, 0.05, 0);
               fanR.getWorldPosition(hub);
               if (dive > 0) { camera.position.lerp(B.set(hub.x, hub.y, hub.z + 0.12), dive); look.lerp(hub, smooth(clamp01((t - DIVE) / 0.4))); }
@@ -376,7 +462,7 @@ export function run() {
           const narrow = w / h < 0.8, back = narrow ? 1.8 : 1;       // a phone stands further back
           for (const o of [...Object.values(M), dimm2, gpuBack]) o.visible = false;
           grid.visible = true; camera.fov = 38;
-          spin += dt * (12 + (shot === 'finale' ? 40 * clamp01((t - SUCK) / 0.4) + 60 * clamp01((t - DIVE) / 0.6) : 0));
+          spin += dt * (1 - 0.97 * frozen(t)) * (12 + (shot === 'finale' ? 40 * clamp01((t - SUCK) / 0.4) + 60 * clamp01((t - DIVE) / 0.6) : 0));
           for (const f of fans) f.rotation.z = -spin;
           // during a change: the outgoing shot at its end and the incoming at its start, the camera gliding between, the
           // subjects dissolving one into the other; otherwise the shot as it is
@@ -398,6 +484,9 @@ export function run() {
             else { if (change) settle(); film.uniforms.glitch.value = 0; }
           }
 
+          signals(p, shot === 'research' && !k); flow.value = t * 1.4;
+          // the rings open as the subject locks and close before it dissolves (not up close on the card in the opening)
+          orbit(subject, t, !k && si0 > 0 && si0 < 4 ? smooth(clamp01((t - CUTS[si0] - TR) / 0.3)) * smooth(clamp01((CUTS[si0 + 1] - TR - t) / 0.2)) : 0);
           if (shot !== 'finale') { core.intensity = 0; bloom.strength = shot === 'research' ? 0.45 : 0.75; grid.material.opacity = 0.5; }
           // the floor: the ring goes out from the subject as it locks (from the hub as the finale charges)
           const fu = floor.material.uniforms, settleAt = si0 === 0 ? FORM : si0 < 4 ? CUTS[si0] + TR : SUCK;
@@ -409,15 +498,18 @@ export function run() {
           const pull = !k && si0 > 0 && si0 < 4 ? smooth(clamp01((t - CUTS[si0] - TR) / 0.45)) : 1;
           bokeh.uniforms.focus.value = camera.position.distanceTo(subject.getWorldPosition(v)) * (shot === 'open' ? 0.75 : 1) * (0.45 + 0.55 * pull);
           bokeh.uniforms.aperture.value = (shot === 'research' ? 0.0011 : shot === 'finale' ? 0.0007 : 0.0016) * (1 + 1.5 * (1 - pull));
-          film.uniforms.time.value = t * 60 % 100; film.uniforms.split.value = 0.0015 + (shot === 'finale' ? 0.004 * clamp01((t - DIVE) / 0.8) : 0);
+          film.uniforms.drain.value = 0.75 * frozen(t);
+          film.uniforms.time.value = (t < BT0 || t > BT1 ? t : BT0) * 60 % 100;   // even the grain holds still film.uniforms.split.value = 0.0015 + (shot === 'finale' ? 0.004 * clamp01((t - DIVE) / 0.8) : 0);
           camera.lookAt(look);
+          if (!k && si0 < 4 && t >= settleAt) { const sl = t - settleAt; camera.fov *= 1 - 0.1 * Math.exp(-sl * 6) * clamp01(sl / 0.04); }   // a punch-in as it locks
           const roll = k ? 0 : shot === 'inference' ? 0.1 - 0.16 * p : shot === 'efficiency' ? -0.08 + 0.14 * p : shot === 'research' ? 0.05 * Math.sin(p * 4) : 0;
           pixels.material.uniforms.scale.value = h * 0.012 * dpr;
           camera.rotateZ(roll); camera.updateProjectionMatrix();
           // the dust drifts, then is pulled into the fan
           for (let i = 0; i < N; i++) {
             const k = shot === 'finale' ? smooth(clamp01((t - SUCK - lag[i]) / (DIVE - SUCK + 0.2))) : 0;
-            const hx = home[i * 3] + Math.sin(t * 0.3 + i) * 0.12, hy = home[i * 3 + 1] + Math.sin(t * 0.5 + i * 0.7) * 0.1, hz = home[i * 3 + 2];
+            const td = t < BT0 ? t : t < BT1 ? BT0 : t - (BT1 - BT0);
+            const hx = home[i * 3] + Math.sin(td * 0.3 + i) * 0.12, hy = home[i * 3 + 1] + Math.sin(td * 0.5 + i * 0.7) * 0.1, hz = home[i * 3 + 2];
             pos[i * 3] = hx + (hub.x - hx) * k; pos[i * 3 + 1] = hy + (hub.y - hy) * k; pos[i * 3 + 2] = hz + (hub.z - hz) * k;
           }
           dustGeo.attributes.position.needsUpdate = true;
@@ -488,6 +580,14 @@ export function run() {
       }
       ctx.globalCompositeOperation = 'source-over';
 
+      // bullet time: ghosts of the frame either side, as from a ring of cameras, and a sweep across it as time stops
+      const fz = frozen(t);
+      if (fz > 0) {
+        ctx.globalCompositeOperation = 'lighter';
+        for (const dx of [-18, 18]) { ctx.globalAlpha = 0.1 * fz; ctx.drawImage(ready.gl, dx, 0, w, h); }
+        const sx = w * clamp01((t - BT0) / 0.15); ctx.globalAlpha = 0.5 * fz * (1 - clamp01((t - BT0) / 0.15)); ctx.fillStyle = `rgb(${WHITE})`; ctx.fillRect(sx - 1, 0, 2, h);
+        ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+      }
       // the shot's word, huge, on the floor: slammed in, drifting
       if (WORDS[shot]) {
         const word = WORDS[shot], fs = Math.min(w * 0.15, h * 0.3);
@@ -501,6 +601,11 @@ export function run() {
         ctx.restore();
       }
 
+      // the lens dirt, lit by how bright the frame is
+      pctx.drawImage(ready.gl, 0, 0, 8, 5); const px8 = pctx.getImageData(0, 0, 8, 5).data; let lum = 0;
+      for (let i = 0; i < px8.length; i += 4) lum += (0.3 * px8[i] + 0.59 * px8[i + 1] + 0.11 * px8[i + 2]) / 255;
+      lum /= 40; const glare = clamp01((lum - 0.16) * 2.6);
+      if (glare > 0.01) { ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = glare; ctx.drawImage(dirt, 0, 0, w, h); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
       // the HUD: corner brackets close in and lock onto the subject once it's built, with a crosshair and a sweep
       const lk = ready.lock(), ch = ready.changing();
       const leak = ch >= 0 ? Math.sin(Math.PI * ch) : t < 0.6 ? clamp01(1 - t / 0.6) * 0.7 : 0;
